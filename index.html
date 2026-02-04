@@ -49,27 +49,40 @@ const db = getFirestore(app);
 
 const timeline = document.getElementById("timeline");
 
-/* ---------- データ取得 ---------- */
+/* ---------- posts.json 読み込み ---------- */
 
 const posts = await fetch("posts.json").then(r => r.json());
 
-// ratings 全件取得（重要）
+/* ---------- 各 .tex を読み込む ---------- */
+
+for (const p of posts) {
+  if (!p.tex) {
+    p.body = "";
+    continue;
+  }
+  const tex = await fetch(p.tex).then(r => r.text());
+  p.body = tex;
+}
+
+/* ---------- ratings 全件取得 ---------- */
+
 const ratingSnap = await getDocs(collection(db, "ratings"));
 const ratingMap = {};
 
-// postId ごとに集計
 ratingSnap.forEach(doc => {
   const { postId, score } = doc.data();
   if (!ratingMap[postId]) ratingMap[postId] = [];
   ratingMap[postId].push(score);
 });
 
-// 投稿データ拡張
+/* ---------- 投稿データ拡張 ---------- */
+
 const enriched = posts.map(p => {
   const scores = ratingMap[p.id] ?? [];
   const avg = scores.length
     ? scores.reduce((a,b)=>a+b,0) / scores.length
     : 0;
+
   return {
     ...p,
     avg,
@@ -77,7 +90,8 @@ const enriched = posts.map(p => {
   };
 });
 
-// 難易度順ソート
+/* ---------- 難易度順 ---------- */
+
 enriched.sort((a,b) => b.avg - a.avg);
 
 /* ---------- 描画 ---------- */
@@ -92,7 +106,9 @@ for (const p of enriched) {
   div.innerHTML = `
     <div class="meta">${p.date}｜${p.source}</div>
 
-    <div class="content">${p.body}</div>
+    <div class="content">
+      $$${p.body}$$
+    </div>
 
     ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
 
@@ -132,7 +148,7 @@ for (const p of enriched) {
         createdAt: new Date()
       });
 
-      // ローカル更新
+      // 即時反映
       const newAvg = (p.avg * p.count + score) / (p.count + 1);
       p.avg = newAvg;
       p.count += 1;
@@ -149,7 +165,8 @@ for (const p of enriched) {
   timeline.appendChild(div);
 }
 
-// MathJax 安全再描画
+/* ---------- MathJax 再描画 ---------- */
+
 MathJax.typesetPromise();
 
 </script>

@@ -167,7 +167,9 @@ for (const p of enriched) {
 
 /* ---------- MathJax 再描画 ---------- */
 
-MathJax.typesetPromise();
+await MathJax.startup.promise;
+MathJax.typeset();
+
 
 </script>
 </body>

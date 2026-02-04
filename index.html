@@ -26,89 +26,101 @@
 <main id="timeline"></main>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    where
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, query, where
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
-    authDomain: "math-memo-870c0.firebaseapp.com",
-    projectId: "math-memo-870c0",
-    storageBucket: "math-memo-870c0.firebasestorage.app",
-    messagingSenderId: "396039327636",
-    appId: "1:396039327636:web:028aa61574d06623240981"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
+  authDomain: "math-memo-870c0.firebaseapp.com",
+  projectId: "math-memo-870c0",
+  storageBucket: "math-memo-870c0.firebasestorage.app",
+  messagingSenderId: "396039327636",
+  appId: "1:396039327636:web:028aa61574d06623240981"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  fetch("posts.json")
-    .then(res => res.json())
-    .then(async posts => {
-      const area = document.getElementById("timeline");
+const area = document.getElementById("timeline");
 
-      for (const p of posts.reverse()) {
-        const ratedKey = `rated_${p.id}`;
-        const alreadyRated = localStorage.getItem(ratedKey);
+fetch("posts.json")
+  .then(res => res.json())
+  .then(async posts => {
+    const enriched = [];
 
-        const q = query(collection(db, "ratings"), where("postId", "==", p.id));
-        const snap = await getDocs(q);
-        const scores = snap.docs.map(d => d.data().score);
-        const avg = scores.length
-          ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(2)
-          : "未評価";
+    for (const p of posts) {
+      const q = query(collection(db, "ratings"), where("postId", "==", p.id));
+      const snap = await getDocs(q);
+      const scores = snap.docs.map(d => d.data().score);
+      const avg = scores.length
+        ? scores.reduce((a,b)=>a+b,0)/scores.length
+        : 0;
 
-        const div = document.createElement("div");
-        div.className = "post";
+      enriched.push({ ...p, avg, count: scores.length });
+    }
 
-        div.innerHTML = `
-          <div class="meta">${p.date}｜${p.source}</div>
+    // ★ 難易度が高い順に並べ替え
+    enriched.sort((a,b) => b.avg - a.avg);
 
-          <div class="content">${p.body}</div>
+    for (const p of enriched) {
+      const ratedKey = `rated_${p.id}`;
+      const alreadyRated = localStorage.getItem(ratedKey);
 
-          ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
+      const div = document.createElement("div");
+      div.className = "post";
 
-          <div class="avg">平均難易度：<b>${avg}</b></div>
+      div.innerHTML = `
+        <div class="meta">${p.date}｜${p.source}</div>
 
-          <div class="rating">
-            ${[1,2,3,4,5,6,7,8,9,10].map(n =>
-              `<button data-score="${n}" ${alreadyRated ? "disabled" : ""}>${n}</button>`
-            ).join("")}
-          </div>
-        `;
+        <div class="content">${p.body}</div>
 
-        if (alreadyRated) {
-          div.querySelector(`[data-score="${alreadyRated}"]`)?.classList.add("selected");
-        }
+        ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
 
-        div.querySelectorAll("button").forEach(btn => {
-          btn.onclick = async () => {
-            if (localStorage.getItem(ratedKey)) return;
+        ${p.answer ? `
+          <div class="answer">
+            <a href="${p.answer}" target="_blank">▶ 模範解答を見る</a>
+          </div>` : ""}
 
-            const score = Number(btn.dataset.score);
-            await addDoc(collection(db, "ratings"), {
-              postId: p.id,
-              score,
-              createdAt: new Date()
-            });
+        <div class="avg">
+          平均難易度：<b>${p.count ? p.avg.toFixed(2) : "未評価"}</b>
+          ${p.count ? `（${p.count}人）` : ""}
+        </div>
 
-            localStorage.setItem(ratedKey, score);
-            div.querySelectorAll("button").forEach(b => b.disabled = true);
-            btn.classList.add("selected");
-          };
-        });
+        <div class="rating">
+          ${[1,2,3,4,5,6,7,8,9,10].map(n =>
+            `<button data-score="${n}" ${alreadyRated ? "disabled" : ""}>${n}</button>`
+          ).join("")}
+        </div>
+      `;
 
-        area.appendChild(div);
+      if (alreadyRated) {
+        div.querySelector(`[data-score="${alreadyRated}"]`)?.classList.add("selected");
       }
 
-      MathJax.typeset();
-    });
+      div.querySelectorAll("button").forEach(btn => {
+        btn.onclick = async () => {
+          if (localStorage.getItem(ratedKey)) return;
+          const score = Number(btn.dataset.score);
+
+          await addDoc(collection(db, "ratings"), {
+            postId: p.id,
+            score,
+            createdAt: new Date()
+          });
+
+          localStorage.setItem(ratedKey, score);
+          div.querySelectorAll("button").forEach(b => b.disabled = true);
+          btn.classList.add("selected");
+        };
+      });
+
+      area.appendChild(div);
+    }
+
+    MathJax.typeset();
+  });
 </script>
 </body>
 </html>

@@ -1,1 +1,35 @@
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background: #f9f9f9;
+  margin: 0;
+  line-height: 1.7;
+}
+
+header {
+  background: #ffffff;
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+h1 {
+  margin: 0;
+}
+
+nav a {
+  margin-right: 15px;
+  text-decoration: none;
+  color: #333;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+main {
+  max-width: 800px;
+  margin: 40px auto;
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 6px;
+}
 

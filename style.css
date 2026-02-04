@@ -17,3 +17,19 @@
   padding: 6px 10px;
   cursor: pointer;
 }
+.rating button.selected {
+  background: #ff9800;
+  color: white;
+  font-weight: bold;
+}
+
+.rating button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.avg {
+  margin: 10px 0;
+  font-size: 0.95em;
+  color: #555;
+}

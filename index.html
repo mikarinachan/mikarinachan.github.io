@@ -28,8 +28,10 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs, query, where
+  getFirestore, collection, addDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ---------- Firebase ---------- */
 
 const firebaseConfig = {
   apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
@@ -43,84 +45,113 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const area = document.getElementById("timeline");
+/* ---------- DOM ---------- */
 
-fetch("posts.json")
-  .then(res => res.json())
-  .then(async posts => {
-    const enriched = [];
+const timeline = document.getElementById("timeline");
 
-    for (const p of posts) {
-      const q = query(collection(db, "ratings"), where("postId", "==", p.id));
-      const snap = await getDocs(q);
-      const scores = snap.docs.map(d => d.data().score);
-      const avg = scores.length
-        ? scores.reduce((a,b)=>a+b,0)/scores.length
-        : 0;
+/* ---------- データ取得 ---------- */
 
-      enriched.push({ ...p, avg, count: scores.length });
-    }
+const posts = await fetch("posts.json").then(r => r.json());
 
-    // ★ 難易度が高い順に並べ替え
-    enriched.sort((a,b) => b.avg - a.avg);
+// ratings 全件取得（重要）
+const ratingSnap = await getDocs(collection(db, "ratings"));
+const ratingMap = {};
 
-    for (const p of enriched) {
-      const ratedKey = `rated_${p.id}`;
-      const alreadyRated = localStorage.getItem(ratedKey);
+// postId ごとに集計
+ratingSnap.forEach(doc => {
+  const { postId, score } = doc.data();
+  if (!ratingMap[postId]) ratingMap[postId] = [];
+  ratingMap[postId].push(score);
+});
 
-      const div = document.createElement("div");
-      div.className = "post";
+// 投稿データ拡張
+const enriched = posts.map(p => {
+  const scores = ratingMap[p.id] ?? [];
+  const avg = scores.length
+    ? scores.reduce((a,b)=>a+b,0) / scores.length
+    : 0;
+  return {
+    ...p,
+    avg,
+    count: scores.length
+  };
+});
 
-      div.innerHTML = `
-        <div class="meta">${p.date}｜${p.source}</div>
+// 難易度順ソート
+enriched.sort((a,b) => b.avg - a.avg);
 
-        <div class="content">${p.body}</div>
+/* ---------- 描画 ---------- */
 
-        ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
+for (const p of enriched) {
+  const ratedKey = `rated_${p.id}`;
+  const alreadyRated = localStorage.getItem(ratedKey);
 
-        ${p.answer ? `
-          <div class="answer">
-            <a href="${p.answer}" target="_blank">▶ 模範解答を見る</a>
-          </div>` : ""}
+  const div = document.createElement("div");
+  div.className = "post";
 
-        <div class="avg">
-          平均難易度：<b>${p.count ? p.avg.toFixed(2) : "未評価"}</b>
-          ${p.count ? `（${p.count}人）` : ""}
-        </div>
+  div.innerHTML = `
+    <div class="meta">${p.date}｜${p.source}</div>
 
-        <div class="rating">
-          ${[1,2,3,4,5,6,7,8,9,10].map(n =>
-            `<button data-score="${n}" ${alreadyRated ? "disabled" : ""}>${n}</button>`
-          ).join("")}
-        </div>
-      `;
+    <div class="content">${p.body}</div>
 
-      if (alreadyRated) {
-        div.querySelector(`[data-score="${alreadyRated}"]`)?.classList.add("selected");
-      }
+    ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
 
-      div.querySelectorAll("button").forEach(btn => {
-        btn.onclick = async () => {
-          if (localStorage.getItem(ratedKey)) return;
-          const score = Number(btn.dataset.score);
+    ${p.answer ? `
+      <div class="answer">
+        <a href="${p.answer}" target="_blank">▶ 模範解答を見る</a>
+      </div>` : ""}
 
-          await addDoc(collection(db, "ratings"), {
-            postId: p.id,
-            score,
-            createdAt: new Date()
-          });
+    <div class="avg" data-avg>
+      平均難易度：<b>${p.count ? p.avg.toFixed(2) : "未評価"}</b>
+      ${p.count ? `（${p.count}人）` : ""}
+    </div>
 
-          localStorage.setItem(ratedKey, score);
-          div.querySelectorAll("button").forEach(b => b.disabled = true);
-          btn.classList.add("selected");
-        };
+    <div class="rating">
+      ${[1,2,3,4,5,6,7,8,9,10].map(n =>
+        `<button data-score="${n}" ${alreadyRated ? "disabled" : ""}>${n}</button>`
+      ).join("")}
+    </div>
+  `;
+
+  const avgDiv = div.querySelector("[data-avg]");
+
+  if (alreadyRated) {
+    div.querySelector(`[data-score="${alreadyRated}"]`)
+      ?.classList.add("selected");
+  }
+
+  div.querySelectorAll("button").forEach(btn => {
+    btn.onclick = async () => {
+      if (localStorage.getItem(ratedKey)) return;
+
+      const score = Number(btn.dataset.score);
+
+      await addDoc(collection(db, "ratings"), {
+        postId: p.id,
+        score,
+        createdAt: new Date()
       });
 
-      area.appendChild(div);
-    }
+      // ローカル更新
+      const newAvg = (p.avg * p.count + score) / (p.count + 1);
+      p.avg = newAvg;
+      p.count += 1;
 
-    MathJax.typeset();
+      avgDiv.innerHTML =
+        `平均難易度：<b>${newAvg.toFixed(2)}</b>（${p.count}人）`;
+
+      localStorage.setItem(ratedKey, score);
+      div.querySelectorAll("button").forEach(b => b.disabled = true);
+      btn.classList.add("selected");
+    };
   });
+
+  timeline.appendChild(div);
+}
+
+// MathJax 安全再描画
+MathJax.typesetPromise();
+
 </script>
 </body>
 </html>

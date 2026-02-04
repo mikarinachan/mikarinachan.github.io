@@ -2,7 +2,6 @@ body {
   font-family: system-ui, sans-serif;
   background: #f4f4f4;
   margin: 0;
-  padding: 0;
 }
 
 header {
@@ -13,15 +12,15 @@ header {
 }
 
 main {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 900px;
+  margin: auto;
   padding: 20px;
 }
 
 .post {
   background: #fff;
-  padding: 16px;
-  margin: 20px 0;
+  padding: 18px;
+  margin-bottom: 20px;
   border-radius: 10px;
 }
 
@@ -32,21 +31,32 @@ main {
 }
 
 .content {
-  background: #fafafa;
-  padding: 10px;
-  border-radius: 6px;
-  white-space: pre-wrap;
+  line-height: 1.7;
   overflow-x: auto;
 }
 
 .explain {
   margin-top: 10px;
   font-size: 0.95em;
-  color: #333;
+}
+
+.answer {
+  margin-top: 8px;
+}
+
+.answer a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.avg {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #444;
 }
 
 .rating {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .rating button {
@@ -57,17 +67,11 @@ main {
 
 .rating button.selected {
   background: #ff9800;
-  color: #fff;
+  color: white;
   font-weight: bold;
 }
 
 .rating button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.avg {
-  margin-top: 8px;
-  font-size: 0.9em;
-  color: #555;
 }

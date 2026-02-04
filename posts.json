@@ -1,10 +1,10 @@
 [
   {
     "id": "utokyo-2023-r1",
-    "date": "2023-02",
+    "date": "2023",
     "source": "東京大学 理系数学 2023 第1問",
-    "body": "$$\\begin{aligned}\n&(1)\\quad \\text{正の整数 } k \\text{ に対し，}\\\\\n&A_k=\\int_{\\sqrt{k\\pi}}^{\\sqrt{(k+1)\\pi}}|\\sin(x^2)|\\,dx\n\\end{aligned}$$\n$$\\text{とおく。次の不等式が成り立つことを示せ。}$$\n$$\\frac{1}{\\sqrt{(k+1)\\pi}}\\le A_k \\le \\frac{1}{\\sqrt{k\\pi}}$$\n$$\\begin{aligned}\n&(2)\\quad \\text{正の整数 } n \\text{ に対し，}\\\\\n&B_n=\\frac{1}{\\sqrt{n}}\\int_{\\sqrt{n\\pi}}^{\\sqrt{2n\\pi}}|\\sin(x^2)|\\,dx\n\\end{aligned}$$\n$$\\text{とおく。}\\ \\lim_{n\\to\\infty} B_n \\text{を求めよ。}$$",
-    "explain": "絶対値付き積分の評価と極限。評価不等式を区間分割で使う。",
+    "body": "$$\\begin{aligned}\n&(1)\\quad \\text{正の整数 } k \\text{ に対し，}\\\\\n&A_k=\\int_{\\sqrt{k\\pi}}^{\\sqrt{(k+1)\\pi}}|\\sin(x^2)|\\,dx\n\\end{aligned}$$\n$$\\frac{1}{\\sqrt{(k+1)\\pi}}\\le A_k \\le \\frac{1}{\\sqrt{k\\pi}}$$\n$$\\begin{aligned}\n&(2)\\quad B_n=\\frac{1}{\\sqrt{n}}\\int_{\\sqrt{n\\pi}}^{\\sqrt{2n\\pi}}|\\sin(x^2)|\\,dx\n\\end{aligned}$$\n$$\\lim_{n\\to\\infty} B_n \\text{を求めよ。}$$",
+    "explain": "積分評価と極限の融合問題。",
     "answer": "https://example.com/utokyo2023-r1-solution.pdf"
   }
 ]

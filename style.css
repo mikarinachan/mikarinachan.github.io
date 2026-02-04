@@ -1,20 +1,19 @@
-body { font-family: sans-serif; background:#fafafa }
 .post {
-  background:#fff;
-  margin:20px;
-  padding:15px;
-  border-radius:8px;
+  background: #fff;
+  padding: 16px;
+  margin: 20px 0;
+  border-radius: 10px;
 }
+
 .thumb {
-  width:100%;
-  max-height:200px;
-  object-fit:cover;
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
 }
-.explain {
-  display:none;
-  margin-top:10px;
-  background:#f3f3f3;
-  padding:10px;
+
+.rating button {
+  margin: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
 }
-.explain.show { display:block }
-.rating button { margin:2px }

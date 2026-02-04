@@ -2,13 +2,23 @@
 <html lang="ja">
 <head>
   <script>
-  MathJax = {
-    tex: {
-      inlineMath: [['$', '$'], ['\\(', '\\)']],
-      displayMath: [['$$', '$$'], ['\\[', '\\]']]
-    }
-  };
+fetch("posts.json")
+  .then(res => res.json())
+  .then(posts => {
+    const area = document.getElementById("timeline");
+    posts.reverse().forEach(p => {
+      const div = document.createElement("div");
+      div.className = "post";
+      div.innerHTML = `
+        <div class="meta">${p.date}</div>
+        <div class="content">${p.body}</div>
+      `;
+      area.appendChild(div);
+    });
+    MathJax.typeset();
+  });
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
 
   <meta charset="UTF-8">

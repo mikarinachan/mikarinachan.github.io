@@ -1,7 +1,33 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+  <meta charset="UTF-8">
+  <title>数学メモ</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- MathJax -->
   <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$']]
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
+</head>
+
+<body>
+
+<header>
+  <h1>数学メモ</h1>
+  <p>思いついた問題・証明・違和感を投げる場所</p>
+</header>
+
+<main id="timeline"></main>
+
+<script>
 fetch("posts.json")
   .then(res => res.json())
   .then(posts => {
@@ -18,38 +44,6 @@ fetch("posts.json")
     MathJax.typeset();
   });
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
-
-  <meta charset="UTF-8">
-  <title>数学メモ</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header>
-  <h1>数学メモ</h1>
-  <p>思いついた問題・証明・違和感を投げる場所</p>
-</header>
-
-<main class="post-body">
-  <h2>極限と連続性の境目</h2>
-  <p class="date">2026-02-04</p>
-
-  <p>
-    次の極限を考える：
-  </p>
-
-  $$
-  \lim_{x \to 0} x\sin\frac{1}{x}
-  $$
-
-  <p>
-    極限は存在しないが、有界ではある。
-    この「収束しないが暴れない」感じが重要。
-  </p>
-</main>
-
 
 </body>
 </html>

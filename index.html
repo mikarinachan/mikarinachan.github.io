@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>数学メモ</title>
+  <title>受験数学難問発掘会</title>
   <link rel="stylesheet" href="style.css">
 
   <!-- MathJax -->
@@ -13,16 +13,36 @@
         displayMath: [['\\[', '\\]'], ['$$', '$$']]
       },
       options: {
-        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        skipHtmlTags: ['script','noscript','style','textarea','pre']
       }
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
 
-  <!-- ★ 改行保持（重要） -->
   <style>
-    .content {
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .post {
+      border-bottom: 1px solid #ddd;
+      padding: 1.5em 0;
+    }
+    .meta {
+      color: #666;
+      font-size: 0.9em;
+      margin-bottom: 0.5em;
+    }
+    .content pre {
       white-space: pre-wrap;
+      font-size: 1.05em;
+      line-height: 1.7;
+      background: #fafafa;
+      padding: 1em;
+      border-radius: 6px;
+    }
+    .rating button.selected {
+      background: #333;
+      color: #fff;
     }
   </style>
 </head>
@@ -59,21 +79,22 @@ const db = getFirestore(app);
 
 const timeline = document.getElementById("timeline");
 
-/* ---------- posts.json 読み込み ---------- */
+/* ---------- posts.json ---------- */
 
 const posts = await fetch("posts.json").then(r => r.json());
 
-/* ---------- 各 .tex を読み込む ---------- */
+/* ---------- tex 読み込み ---------- */
 
 for (const p of posts) {
   if (!p.tex) {
     p.body = "";
     continue;
   }
-  p.body = await fetch(p.tex).then(r => r.text());
+  const tex = await fetch(p.tex).then(r => r.text());
+  p.body = tex;
 }
 
-/* ---------- ratings 全件取得 ---------- */
+/* ---------- ratings ---------- */
 
 const ratingSnap = await getDocs(collection(db, "ratings"));
 const ratingMap = {};
@@ -84,7 +105,7 @@ ratingSnap.forEach(doc => {
   ratingMap[postId].push(score);
 });
 
-/* ---------- 投稿データ拡張 ---------- */
+/* ---------- 投稿データ ---------- */
 
 const enriched = posts.map(p => {
   const scores = ratingMap[p.id] ?? [];
@@ -111,8 +132,9 @@ for (const p of enriched) {
   div.innerHTML = `
     <div class="meta">${p.date}｜${p.source}</div>
 
-    <!-- ★ texはそのまま流す -->
-    <div class="content">${p.body}</div>
+    <div class="content">
+      <pre>${p.body}</pre>
+    </div>
 
     ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
 
@@ -134,11 +156,6 @@ for (const p of enriched) {
   `;
 
   const avgDiv = div.querySelector("[data-avg]");
-
-  if (alreadyRated) {
-    div.querySelector(`[data-score="${alreadyRated}"]`)
-      ?.classList.add("selected");
-  }
 
   div.querySelectorAll("button").forEach(btn => {
     btn.onclick = async () => {
@@ -168,11 +185,10 @@ for (const p of enriched) {
   timeline.appendChild(div);
 }
 
-/* ---------- MathJax 再描画（確実） ---------- */
+/* ---------- MathJax ---------- */
 
 await MathJax.startup.promise;
-MathJax.typesetPromise();
-
+MathJax.typeset();
 </script>
 </body>
 </html>

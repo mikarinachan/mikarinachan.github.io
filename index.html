@@ -11,10 +11,20 @@
       tex: {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
         displayMath: [['\\[', '\\]'], ['$$', '$$']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
       }
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
+
+  <!-- ★ 改行保持（重要） -->
+  <style>
+    .content {
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
 
 <body>
@@ -60,8 +70,7 @@ for (const p of posts) {
     p.body = "";
     continue;
   }
-  const tex = await fetch(p.tex).then(r => r.text());
-  p.body = tex;
+  p.body = await fetch(p.tex).then(r => r.text());
 }
 
 /* ---------- ratings 全件取得 ---------- */
@@ -83,11 +92,7 @@ const enriched = posts.map(p => {
     ? scores.reduce((a,b)=>a+b,0) / scores.length
     : 0;
 
-  return {
-    ...p,
-    avg,
-    count: scores.length
-  };
+  return { ...p, avg, count: scores.length };
 });
 
 /* ---------- 難易度順 ---------- */
@@ -106,9 +111,8 @@ for (const p of enriched) {
   div.innerHTML = `
     <div class="meta">${p.date}｜${p.source}</div>
 
-    <div class="content">
-      ${p.body}
-    </div>
+    <!-- ★ texはそのまま流す -->
+    <div class="content">${p.body}</div>
 
     ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
 
@@ -148,7 +152,6 @@ for (const p of enriched) {
         createdAt: new Date()
       });
 
-      // 即時反映
       const newAvg = (p.avg * p.count + score) / (p.count + 1);
       p.avg = newAvg;
       p.count += 1;
@@ -165,11 +168,10 @@ for (const p of enriched) {
   timeline.appendChild(div);
 }
 
-/* ---------- MathJax 再描画 ---------- */
+/* ---------- MathJax 再描画（確実） ---------- */
 
 await MathJax.startup.promise;
-MathJax.typeset();
-
+MathJax.typesetPromise();
 
 </script>
 </body>

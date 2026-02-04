@@ -5,4 +5,12 @@
     "body": "$$\\lim_{x\\to0}x\\sin\\frac1x$$",
     "explain": "有界性と振動の典型例。",
   }
+
+    {
+    "id": "int-002",
+    "date": "2026-02-10",
+    "body": "次を計算せよ：$$\\int_0^1 x^2 dx$$",
+    "explain": "$$\\frac13$$"
+  }
 ]
+

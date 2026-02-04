@@ -1,35 +1,48 @@
 body {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  background: #f9f9f9;
+  background: #f5f8fa;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
-  line-height: 1.7;
 }
 
 header {
-  background: #ffffff;
+  background: white;
   padding: 20px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e1e8ed;
 }
 
-h1 {
-  margin: 0;
+.timeline {
+  max-width: 600px;
+  margin: 20px auto;
 }
 
-nav a {
-  margin-right: 15px;
+.post {
+  display: block;
+  background: white;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
   text-decoration: none;
-  color: #333;
+  color: black;
 }
 
-nav a:hover {
-  text-decoration: underline;
+.post:hover {
+  background: #f0f0f0;
 }
 
-main {
-  max-width: 800px;
+.date {
+  font-size: 12px;
+  color: #657786;
+}
+
+.title {
+  font-size: 16px;
+  margin-top: 5px;
+}
+
+.post-body {
+  max-width: 700px;
   margin: 40px auto;
-  background: #ffffff;
+  background: white;
   padding: 30px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
-

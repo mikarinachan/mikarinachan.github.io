@@ -1,9 +1,10 @@
 [
   {
-    "id": "ut-2023-r6",
-    "date": "2023-02",
-    "source": "東京大学 理系数学 2023 第6問",
-    "body": "$$\\lim_{x \\to 0} x \\sin\\frac{1}{x}$$",
-    "explain": "有界性と極限の基本事項を確認する典型問題。$|\\sin(1/x)| \\le 1$ を用いる。"
+    "id": "utokyo-2023-r1",
+    "date": "2023-02-25",
+    "source": "東京大学 理系数学 2023 第1問",
+    "body": "$$\\begin{aligned}\n&(1)\\quad \\text{正の整数 } k \\text{ に対し，}\\\\\n&A_k=\\int_{\\sqrt{k\\pi}}^{\\sqrt{(k+1)\\pi}}|\\sin(x^2)|\\,dx\n\\end{aligned}$$\n$$\\text{とおく。次の不等式が成り立つことを示せ。}$$\n$$\\frac{1}{\\sqrt{(k+1)\\pi}}\\le A_{k}\\le \\frac{1}{\\sqrt{k\\pi}}$$\n$$\n(2)\\quad \\text{正の整数 } n \\text{ に対し}\n$$\n$$B_n=\\frac{1}{\\sqrt{n}}\\int_{\\sqrt{n\\pi}}^{\\sqrt{2n\\pi}}|\\sin(x^2)|\\,dx$$\n$$\\text{とおく。極限 }\\lim_{n\\to\\infty}B_n\\text{ を求めよ。}$$",
+    "explain": "2023年度東大理系数学の第1問です。絶対値付き積分の評価と極限値の求め方を問われる典型的問題。",
+    "thumbnail": ""
   }
 ]

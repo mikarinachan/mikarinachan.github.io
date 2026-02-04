@@ -3,46 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <title>受験数学クラブ</title>
+
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-
-<header>
   <h1>受験数学クラブ</h1>
-  <p class="catch">受験数学の良問を共有・評価する場所</p>
-</header>
 
-<main>
-  <section>
-    <h2>📘 分野別</h2>
-    <ul>
-      <li>数I・A</li>
-      <li>数II・B</li>
-      <li>数III</li>
-    </ul>
-  </section>
+  <p>例：二次関数</p>
+  <p>
+    $f(x)=x^2-4x+3$
+  </p>
 
-  <section>
-    <h2>📝 このサイトについて</h2>
-    <p>
-      受験数学の問題を共有し、難易度や良問度を評価できるサイトを目指しています。
-      現在は準備段階です。
-    </p>
-  </section>
-
-  <section>
-    <h2>🚀 今後追加予定</h2>
-    <ul>
-      <li>問題投稿フォーム</li>
-      <li>★評価システム</li>
-      <li>解説・コメント機能</li>
-    </ul>
-  </section>
-</main>
-
-<footer>
-  <p>© 2026 受験数学クラブ</p>
-</footer>
-
+  <p>
+    $$f(x)=(x-2)^2-1$$
+  </p>
 </body>
 </html>

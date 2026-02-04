@@ -27,7 +27,14 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    where
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
@@ -50,24 +57,34 @@
         const ratedKey = `rated_${p.id}`;
         const alreadyRated = localStorage.getItem(ratedKey);
 
-        // 平均取得
-        const q = query(collection(db, "ratings"), where("postId", "==", p.id));
+        // 平均難易度取得
+        const q = query(
+          collection(db, "ratings"),
+          where("postId", "==", p.id)
+        );
         const snap = await getDocs(q);
         const scores = snap.docs.map(d => d.data().score);
         const avg = scores.length
-          ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(2)
+          ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)
           : "未評価";
 
         const div = document.createElement("div");
         div.className = "post";
 
         div.innerHTML = `
- 
-          <div class="meta">${p.date}</div>
-          <div class="content">${p.body}</div>
-          <div class="explain">${p.explain}</div>
+          <div class="meta">
+            ${p.date}｜${p.source}
+          </div>
 
-          <div class="avg">平均難易度：<b>${avg}</b></div>
+          <div class="content">
+            ${p.body}
+          </div>
+
+          ${p.explain ? `<div class="explain">${p.explain}</div>` : ""}
+
+          <div class="avg">
+            平均難易度：<b>${avg}</b>
+          </div>
 
           <div class="rating">
             ${[1,2,3,4,5,6,7,8,9,10].map(n =>
@@ -76,11 +93,15 @@
           </div>
         `;
 
+        // 既に評価済みなら色を付ける
         if (alreadyRated) {
-          div.querySelector(`[data-score="${alreadyRated}"]`)?.classList.add("selected");
+          div.querySelector(
+            `[data-score="${alreadyRated}"]`
+          )?.classList.add("selected");
         }
 
-        div.querySelectorAll("button").forEach(btn => {
+        // 評価処理
+        div.querySelectorAll(".rating button").forEach(btn => {
           btn.onclick = async () => {
             const score = Number(btn.dataset.score);
             if (localStorage.getItem(ratedKey)) return;
@@ -93,9 +114,10 @@
 
             localStorage.setItem(ratedKey, score);
 
-            div.querySelectorAll("button").forEach(b => b.disabled = true);
-            btn.classList.add("selected");
+            div.querySelectorAll(".rating button")
+              .forEach(b => b.disabled = true);
 
+            btn.classList.add("selected");
             alert("評価ありがとう！");
           };
         });
@@ -103,6 +125,7 @@
         area.appendChild(div);
       }
 
+      // LaTeX 再描画
       MathJax.typeset();
     });
 </script>

@@ -1,26 +1,108 @@
+/* ===== 全体 ===== */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f2f2f2;
+  color: #222;
+}
+
+/* ===== ヘッダー ===== */
+header {
+  background: #ffffff;
+  padding: 20px 16px;
+  border-bottom: 1px solid #ddd;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.6em;
+}
+
+header p {
+  margin: 6px 0 0;
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* ===== タイムライン ===== */
+#timeline {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* ===== 投稿カード ===== */
 .post {
   background: #fff;
   padding: 16px;
   margin: 20px 0;
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
+/* ===== サムネ ===== */
 .thumb {
   width: 100%;
-  max-height: 200px;
+  max-height: 220px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+/* ===== 日付 ===== */
+.meta {
+  font-size: 0.8em;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+/* ===== 数学本文 ===== */
+.content {
+  font-size: 1.05em;
+  margin: 12px 0;
+}
+
+/* ===== 解説 ===== */
+.explain {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f7f7f7;
+  border-left: 4px solid #aaa;
+  font-size: 0.95em;
+}
+
+/* ===== 平均難易度 ===== */
+.avg {
+  margin: 12px 0 6px;
+  font-size: 0.9em;
+  color: #555;
+}
+
+/* ===== 評価 ===== */
+.rating {
+  margin-top: 6px;
 }
 
 .rating button {
-  margin: 4px;
+  margin: 3px;
   padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
   cursor: pointer;
+  font-size: 0.9em;
 }
+
+.rating button:hover:not(:disabled) {
+  background: #eee;
+}
+
 .rating button.selected {
   background: #ff9800;
   color: white;
   font-weight: bold;
+  border-color: #ff9800;
 }
 
 .rating button:disabled {
@@ -28,8 +110,18 @@
   cursor: not-allowed;
 }
 
-.avg {
-  margin: 10px 0;
-  font-size: 0.95em;
-  color: #555;
+/* ===== モバイル最適化 ===== */
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1.4em;
+  }
+
+  .post {
+    padding: 14px;
+  }
+
+  .rating button {
+    padding: 6px 8px;
+    font-size: 0.85em;
+  }
 }

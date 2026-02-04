@@ -1,108 +1,64 @@
-/* ===== 全体 ===== */
 body {
+  font-family: system-ui, sans-serif;
+  background: #f4f4f4;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f2f2f2;
-  color: #222;
 }
 
-/* ===== ヘッダー ===== */
 header {
-  background: #ffffff;
-  padding: 20px 16px;
-  border-bottom: 1px solid #ddd;
+  background: #222;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
 }
 
-header h1 {
-  margin: 0;
-  font-size: 1.6em;
-}
-
-header p {
-  margin: 6px 0 0;
-  font-size: 0.9em;
-  color: #666;
-}
-
-/* ===== タイムライン ===== */
-#timeline {
-  max-width: 720px;
+main {
+  max-width: 800px;
   margin: 0 auto;
-  padding: 10px;
+  padding: 20px;
 }
 
-/* ===== 投稿カード ===== */
 .post {
   background: #fff;
   padding: 16px;
   margin: 20px 0;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-/* ===== サムネ ===== */
-.thumb {
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
   border-radius: 10px;
-  margin-bottom: 10px;
 }
 
-/* ===== 日付 ===== */
 .meta {
-  font-size: 0.8em;
-  color: #888;
-  margin-bottom: 6px;
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 8px;
 }
 
-/* ===== 数学本文 ===== */
 .content {
-  font-size: 1.05em;
-  margin: 12px 0;
+  background: #fafafa;
+  padding: 10px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow-x: auto;
 }
 
-/* ===== 解説 ===== */
 .explain {
   margin-top: 10px;
-  padding: 10px;
-  background: #f7f7f7;
-  border-left: 4px solid #aaa;
   font-size: 0.95em;
+  color: #333;
 }
 
-/* ===== 平均難易度 ===== */
-.avg {
-  margin: 12px 0 6px;
-  font-size: 0.9em;
-  color: #555;
-}
-
-/* ===== 評価 ===== */
 .rating {
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .rating button {
   margin: 3px;
   padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background: #fff;
   cursor: pointer;
-  font-size: 0.9em;
-}
-
-.rating button:hover:not(:disabled) {
-  background: #eee;
 }
 
 .rating button.selected {
   background: #ff9800;
-  color: white;
+  color: #fff;
   font-weight: bold;
-  border-color: #ff9800;
 }
 
 .rating button:disabled {
@@ -110,25 +66,8 @@ header p {
   cursor: not-allowed;
 }
 
-/* ===== モバイル最適化 ===== */
-@media (max-width: 600px) {
-  header h1 {
-    font-size: 1.4em;
-  }
-
-  .post {
-    padding: 14px;
-  }
-
-  .rating button {
-    padding: 6px 8px;
-    font-size: 0.85em;
-  }
-}
-
-
-.source {
-  font-size: 0.8em;
-  color: #777;
-  margin-bottom: 8px;
+.avg {
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #555;
 }

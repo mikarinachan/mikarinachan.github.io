@@ -125,3 +125,10 @@ header p {
     font-size: 0.85em;
   }
 }
+
+
+.source {
+  font-size: 0.8em;
+  color: #777;
+  margin-bottom: 8px;
+}

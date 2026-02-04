@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>数学メモ</title>
-
   <link rel="stylesheet" href="style.css">
 
   <!-- MathJax -->
@@ -17,10 +16,27 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
 </head>
-<!-- Firebase SDK -->
+
+<body>
+
+<header>
+  <h1>数学メモ</h1>
+  <p>思いついた問題・証明・違和感を投げる場所</p>
+</header>
+
+<main id="timeline"></main>
+
+<!-- Firebase & 表示ロジック -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    query,
+    where,
+    getDocs
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
@@ -34,41 +50,59 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // 難易度を保存
-  window.submitRating = async (score) => {
+  // 評価送信
+  window.submitRating = async (postId, score) => {
     await addDoc(collection(db, "ratings"), {
-      score: score,
+      postId,
+      score,
       createdAt: new Date()
     });
     alert("評価ありがとう！");
+    location.reload();
   };
-</script>
 
-<body>
+  // 平均評価取得
+  async function getAverage(postId) {
+    const q = query(collection(db, "ratings"), where("postId", "==", postId));
+    const snap = await getDocs(q);
+    if (snap.empty) return "未評価";
 
-<header>
-  <h1>数学メモ</h1>
-  <p>思いついた問題・証明・違和感を投げる場所</p>
-</header>
+    let sum = 0;
+    snap.forEach(d => sum += d.data().score);
+    return (sum / snap.size).toFixed(1);
+  }
 
-<main id="timeline"></main>
+  // 投稿読み込み
+  fetch("posts.json")
+    .then(res => res.json())
+    .then(async posts => {
+      const area = document.getElementById("timeline");
+      posts.reverse();
 
-<script>
-fetch("posts.json")
-  .then(res => res.json())
-  .then(posts => {
-    const area = document.getElementById("timeline");
-    posts.reverse().forEach(p => {
-      const div = document.createElement("div");
-      div.className = "post";
-      div.innerHTML = `
-        <div class="meta">${p.date}</div>
-        <div class="content">${p.body}</div>
-      `;
-      area.appendChild(div);
+      for (const p of posts) {
+        const avg = await getAverage(p.id);
+
+        const div = document.createElement("div");
+        div.className = "post";
+        div.innerHTML = `
+          <div class="meta">${p.date}</div>
+
+          ${p.thumbnail ? `<img src="${p.thumbnail}" class="thumb">` : ""}
+
+          <div class="content">${p.body}</div>
+
+          <div class="rating">
+            <span>難易度平均：${avg}</span><br>
+            ${[...Array(10)].map((_, i) =>
+              `<button onclick="submitRating('${p.id}', ${i + 1})">${i + 1}</button>`
+            ).join("")}
+          </div>
+        `;
+        area.appendChild(div);
+      }
+
+      MathJax.typeset();
     });
-    MathJax.typeset();
-  });
 </script>
 
 </body>

@@ -1,10 +1,8 @@
 [
   {
+    "id": "limit-001",
     "date": "2026-02-04",
-    "body": "$$\\lim_{x\\to0} x\\sin(1/x)$$\n振動と有界性の例。"
-  },
-  {
-    "date": "2026-02-03",
-    "body": "$p$進ノルムは距離として微妙。"
+    "body": "$$\\lim_{x\\to0}x\\sin\\frac1x$$",
+    "thumbnail": "thumbs/limit.png"
   }
 ]

@@ -8,16 +8,21 @@
 
   <!-- MathJax -->
   <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['\\[', '\\]'], ['$$', '$$']]
-      },
-      options: {
-        skipHtmlTags: ['script', 'noscript', 'style', 'textarea']
-      }
-    };
-  </script>
+  window.MathJax = {
+    loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],
+      packages: { '[+]': ['noerrors', 'noundefined'] }
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea'],
+      renderActions: { addMenu: [] } // 右クリックメニュー消す（鬱陶しいなら）
+    }
+  };
+</script>
+
+
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
 
   <style>
@@ -225,6 +230,16 @@ timeline.before(toolbar);
     return new TextDecoder("utf-8").decode(buf);
   }
 }
+
+function escapeHTML(s) {
+  return (s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 
 
   /* ---------- util: LaTeX → 表示用に正規化（MathJax非対応を剥がす） ---------- */
@@ -597,9 +612,17 @@ searchInput.addEventListener("input", async () => {
     return meta.includes(q);
   });
 
-  const bodyMatched = enriched.filter(p =>
-    (p.body || "").toLowerCase().includes(q)
-  );
+  const bodyMatched = [];
+for (const p of enriched) {
+  if (!p.body) {
+    try {
+      const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
+      p.body = normalizeLatexForMathJax(raw);
+    } catch {}
+  }
+  if ((p.body || "").toLowerCase().includes(q)) bodyMatched.push(p);
+}
+
 
   const merged = [];
   const seen = new Set();

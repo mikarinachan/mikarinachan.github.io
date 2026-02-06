@@ -258,55 +258,22 @@ timeline.before(toolbar);
   if (!r.ok) throw new Error(`HTTP ${r.status}: posts_index.json`);
   const posts = await r.json();
 
-  // 形式チェック（事故防止）
   const cleaned = posts
     .filter(p => p && p.id && p.tex)
     .map(p => ({
       id: String(p.id),
-      tex: String(p.tex),
+      tex: String(p.tex),                 // ← posts/2025_6.tex みたいな相対パスOK
       date: String(p.date ?? ""),
       no: Number(p.no ?? 0),
       source: String(p.source ?? "入試問題"),
-      encoding: String(p.encoding ?? "utf-8")
+      encoding: String(p.encoding ?? "utf-8"),
+      body: ""                            // ← 後で読み込む用
     }));
 
   cleaned.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
   return cleaned;
 }
 
-
-
-  const api = "https://api.github.com/repos/mikarinachan/mikarinachan.github.io/contents/posts";
-  const r = await fetch(api, { cache: "no-store" });
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${api}`);
-  const files = await r.json();
-
-  const posts = files
-    .filter(f => typeof f?.name === "string"
-  && /^(\d{4})_(\d+)\.tex$/.test(f.name)
-  && typeof f?.download_url === "string" && f.download_url)
-
-    .map(f => {
-      const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
-      const year = m[1];
-      const no = m[2];
-      return {
-        id: f.name.replace(".tex", ""),
-        tex: f.download_url,
-        date: year,
-        no: Number(no),
-        source: "入試問題",
-        encoding: year === "2025" ? "shift_jis" : "utf-8"
-      };
-    });
-
-  posts.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
-
-  // キャッシュ保存
-  localStorage.setItem(cacheKey, JSON.stringify(posts));
-  localStorage.setItem(cacheTimeKey, String(now));
-
-  return posts;
 }
 
 
@@ -395,11 +362,7 @@ timeline.before(toolbar);
 
     // tex本文
     // 表示時に初めて読み込む（キャッシュあり）
-if (!p.body) {
-  const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
-  p.body = normalizeLatexForMathJax(raw);
-}
-texEl.innerHTML = p.body;
+
 
 
     // enriched
@@ -430,7 +393,12 @@ async function renderOne(p) {
 
   // ★ qnum をHTMLで出したい場合は innerHTML / それ以外は textContent
   // いま「□4」化をするなら innerHTML にしてください
-  texEl.innerHTML = p.body;
+  if (!p.body) {
+  const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
+  p.body = normalizeLatexForMathJax(raw);
+}
+texEl.innerHTML = p.body;
+
 
   const avgDiv = card.querySelector("[data-avg]");
 

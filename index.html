@@ -230,6 +230,46 @@ timeline.before(toolbar);
   /* ---------- util: LaTeX → 表示用に正規化（MathJax非対応を剥がす） ---------- */
   function normalizeLatexForMathJax(tex) {
     return tex
+      // ★ MathJaxでよく死ぬ/警告になる命令をまとめて除去・簡約
+      .replace(/\\hspace\*?\{[^}]*\}/g, "")         // Missing dimension for \hspace
+      .replace(/\\vspace\*?\{[^}]*\}/g, "")         // vspace系
+      .replace(/\\(smallskip|medskip|bigskip)\b/g, "") // skip系
+      .replace(/\\(noindent|par|indent)\b/g, "\n")  // 段落系（雑に改行へ）
+      .replace(/\\(newpage|clearpage|pagebreak|linebreak)\b(\[[^\]]*\])?/g, "\n") // 改ページ/改行
+      .replace(/\\(qquad|quad)\b/g, " ")            // 空白命令は半角スペースへ（エラー回避）
+      .replace(/\\,/g, " ")                         // 数式中の薄スペースが邪魔なら消す/スペース化
+
+      // TeXのレイアウト命令・ページ設定（MathJax不要）
+      .replace(/\\setlength\{[^}]+\}\{[^}]+\}/g, "")
+      .replace(/\\addtolength\{[^}]+\}\{[^}]+\}/g, "")
+      .replace(/\\(textwidth|textheight|oddsidemargin|evensidemargin|topmargin|headheight|headsep|footskip)\s*=?\s*[^\\\n]*/g, "")
+
+      // 図・表・外部ファイル系（MathJaxで扱わない）
+      .replace(/\\includegraphics(\[[^\]]*\])?\{[^}]*\}/g, "")
+      .replace(/\\input\{[^}]*\}/g, "")
+      .replace(/\\include\{[^}]*\}/g, "")
+      .replace(/\\bibliography\{[^}]*\}/g, "")
+      .replace(/\\bibliographystyle\{[^}]*\}/g, "")
+
+      // picture/tikz/pstricks等（丸ごと消す）
+      .replace(/\\begin\{(?:tikzpicture|picture|pspicture|circuitikz)\}[\s\S]*?\\end\{\1\}/g, "")
+
+      // \raisebox などレイアウト調整（エラーになりやすい）
+      .replace(/\\raisebox\{[^}]*\}\{[^}]*\}/g, "")
+
+      // \phantom/\hphantom/\vphantom は空白目的なら消してOK
+      .replace(/\\(phantom|hphantom|vphantom)\{[^}]*\}/g, "")
+
+      // \color, \textcolor 等（使ってないなら消す）
+      .replace(/\\textcolor\{[^}]*\}\{([^}]*)\}/g, "$1")
+      .replace(/\\color\{[^}]*\}/g, "")
+
+      // \label \ref \cite など（表示には不要）
+      .replace(/\\label\{[^}]*\}/g, "")
+      .replace(/\\ref\{[^}]*\}/g, "")
+      .replace(/\\cite\{[^}]*\}/g, "")
+
+      .replace(/\\hspace\{[^}]*\}/g, "")
       // document前後を削除
       .replace(/^[\s\S]*?\\begin\{document\}/, "")
       .replace(/\\end\{document\}[\s\S]*$/, "")

@@ -51,6 +51,7 @@
 </header>
 
 <main id="timeline"></main>
+  
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -76,6 +77,15 @@ const db = getFirestore(app);
 
 const timeline = document.getElementById("timeline");
 
+  /* ---------- util: encoding付き fetch ---------- */
+async function fetchTextWithEncoding(url, encoding = "utf-8") {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  const buf = await res.arrayBuffer();
+  return new TextDecoder(encoding).decode(buf);
+}
+
+
 /* ---------- posts 自動生成 ---------- */
 
 // GitHub API から posts/ フォルダ一覧を取得
@@ -91,23 +101,24 @@ const posts = files
     // 例: utokyo_2023_r1.tex
     const m = f.name.match(/^(.+?)_(\d{4})(?:_(r\d))?\.tex$/);
 
+    const name = f.name;
+    const year = m ? m[2] : "";
+
     return {
-      id: f.name.replace(".tex", ""),
-      tex: `posts/${f.name}`,
+      id: name.replace(".tex", ""),
+      tex: `posts/${name}`,
       source: m ? m[1] : "unknown",
-      date: m ? m[2] : "",
+      date: year,
       round: m?.[3] ?? "",
-      encoding: f.name.includes("_sjis") ? "shift_jis" : "utf-8"
+      encoding: year === "2025" ? "shift_jis" : "utf-8"
     };
+  });
+
+
 
   });
 
-async function fetchTextWithEncoding(url, encoding = "utf-8") {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`${res.status} ${url}`);
-  const buf = await res.arrayBuffer();
-  return new TextDecoder(encoding).decode(buf);
-}
+
 
 /* ---------- tex 読み込み ---------- */
 

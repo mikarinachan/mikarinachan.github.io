@@ -258,11 +258,22 @@ timeline.before(toolbar);
   if (!r.ok) throw new Error(`HTTP ${r.status}: posts_index.json`);
   const posts = await r.json();
 
-  // 並び順（年度降順→番号昇順）
-  posts.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
+  // 形式チェック（事故防止）
+  const cleaned = posts
+    .filter(p => p && p.id && p.tex)
+    .map(p => ({
+      id: String(p.id),
+      tex: String(p.tex),
+      date: String(p.date ?? ""),
+      no: Number(p.no ?? 0),
+      source: String(p.source ?? "入試問題"),
+      encoding: String(p.encoding ?? "utf-8")
+    }));
 
-  return posts;
+  cleaned.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
+  return cleaned;
 }
+
 
 
   const api = "https://api.github.com/repos/mikarinachan/mikarinachan.github.io/contents/posts";
@@ -383,7 +394,13 @@ timeline.before(toolbar);
     const ratingMap = await loadRatings();
 
     // tex本文
-    await loadBodies(posts);
+    // 表示時に初めて読み込む（キャッシュあり）
+if (!p.body) {
+  const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
+  p.body = normalizeLatexForMathJax(raw);
+}
+texEl.innerHTML = p.body;
+
 
     // enriched
     const enriched = posts.map(p => {

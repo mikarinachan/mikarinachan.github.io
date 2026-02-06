@@ -76,9 +76,30 @@ const db = getFirestore(app);
 
 const timeline = document.getElementById("timeline");
 
-/* ---------- posts.json ---------- */
+/* ---------- posts 自動生成 ---------- */
 
-const posts = await fetch("posts.json").then(r => r.json());
+// GitHub API から posts/ フォルダ一覧を取得
+const res = await fetch(
+  "https://api.github.com/repos/mikarinachan/mikarinachan.github.io/contents/posts"
+);
+const files = await res.json();
+
+// ファイル名規則をパースして posts を作る
+const posts = files
+  .filter(f => f.name.endsWith(".tex"))
+  .map(f => {
+    // 例: utokyo_2023_r1.tex
+    const m = f.name.match(/^(.+?)_(\d{4})(?:_(r\d))?\.tex$/);
+
+    return {
+      id: f.name.replace(".tex", ""),
+      tex: `posts/${f.name}`,
+      source: m ? m[1] : "unknown",
+      date: m ? m[2] : "",
+      round: m?.[3] ?? ""
+    };
+  });
+
 
 /* ---------- tex 読み込み ---------- */
 

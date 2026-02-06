@@ -1,81 +1,384 @@
-body {
-  font-family: system-ui, sans-serif;
-  background: #f4f4f4;
+/* =========================
+   Base
+========================= */
+:root{
+  --bg: #f4f4f4;
+  --card: #ffffff;
+  --text: #111;
+  --muted: #666;
+  --line: rgba(0,0,0,.08);
+  --shadow: 0 10px 30px rgba(0,0,0,.06);
+  --shadow2: 0 1px 10px rgba(0,0,0,.06);
+
+  --radius: 14px;
+  --radius2: 10px;
+
+  --accent: #1976d2;
+  --btn: #fff;
+  --btnLine: #ddd;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
   margin: 0;
 }
 
-header {
+header{
   background: #222;
   color: #fff;
-  padding: 20px;
+  padding: 18px 16px;
   text-align: center;
 }
 
-main {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
+header h1{
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: .02em;
 }
 
-.post {
+header p{
+  margin: 6px 0 0;
+  opacity: .85;
+  font-size: .95rem;
+}
+
+main{
+  max-width: 1100px; /* 900 → 1100にして余白感UP */
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+}
+
+/* =========================
+   Toolbar (検索 / クリア / 並び替え)
+========================= */
+.toolbar{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+
+  padding: 12px 0;
+  background: rgba(244,244,244,.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.toolbar input[type="search"]{
+  flex: 1;
+  padding: .75rem .95rem;
+  border-radius: 12px;
+  border: 1px solid var(--btnLine);
+  outline: none;
+  font-size: 1rem;
   background: #fff;
-  padding: 18px;
-  margin-bottom: 20px;
-  border-radius: 10px;
 }
 
-.meta {
-  font-size: 0.85em;
-  color: #666;
-  margin-bottom: 8px;
+.toolbar input[type="search"]:focus{
+  border-color: rgba(25,118,210,.55);
+  box-shadow: 0 0 0 4px rgba(25,118,210,.12);
 }
 
-.content {
-  line-height: 1.7;
+.toolbar button{
+  padding: .72rem .9rem;
+  border-radius: 12px;
+  border: 1px solid var(--btnLine);
+  background: var(--btn);
+  cursor: pointer;
+  font-size: .95rem;
+  white-space: nowrap;
+}
+
+.toolbar button:hover{
+  background: #f1f1f1;
+}
+
+/* =========================
+   Post Card
+========================= */
+.post{
+  background: var(--card);
+  padding: 20px;
+  margin: 0 0 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow2);
+  border: 1px solid rgba(0,0,0,.03);
+}
+
+.post:hover{
+  box-shadow: var(--shadow);
+}
+
+.meta{
+  font-size: .9rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* =========================
+   Content Area (TeX)
+========================= */
+.content{
+  line-height: 1.75;
+}
+
+.tex{
+  white-space: pre-wrap;
+  font-size: 1.03rem;
+  line-height: 1.75;
+  background: #fafafa;
+  padding: 14px 14px;
+  border-radius: var(--radius2);
+  border: 1px solid rgba(0,0,0,.06);
+  overflow-wrap: anywhere;
   overflow-x: auto;
 }
 
-.explain {
+/* 折りたたみ（長文対策） */
+.tex.collapsed{
+  max-height: 15rem;
+  overflow: hidden;
+  position: relative;
+}
+.tex.collapsed::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height: 4.5rem;
+  background: linear-gradient(to bottom, rgba(250,250,250,0), rgba(250,250,250,1));
+  pointer-events: none;
+}
+
+/* 問題番号バッジ */
+.qnum{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2em;
+  height: 2.2em;
+  border: 2px solid #222;
+  border-radius: 8px;
+  font-weight: 800;
+  background: #fff;
+  margin-bottom: .6em;
+}
+
+/* =========================
+   Content tools (コピー / 開閉)
+========================= */
+.content-tools{
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.toggle,
+.copy{
+  border: 1px solid var(--btnLine);
+  background: #fff;
+  border-radius: 12px;
+  padding: .5rem .8rem;
+  cursor: pointer;
+  font-size: .95rem;
+}
+
+.toggle:hover,
+.copy:hover{
+  background: #f2f2f2;
+}
+
+.toggle:active,
+.copy:active{
+  transform: translateY(1px);
+}
+
+/* =========================
+   Explain / Answer
+========================= */
+.explain{
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fcfcfc;
+  border: 1px solid rgba(0,0,0,.06);
+  border-left: 4px solid rgba(0,0,0,.18);
+  border-radius: var(--radius2);
+  font-size: .97rem;
+}
+
+.answer{
   margin-top: 10px;
-  font-size: 0.95em;
 }
 
-.answer {
-  margin-top: 8px;
-}
-
-.answer a {
-  color: #1976d2;
+.answer a{
+  color: var(--accent);
   text-decoration: none;
+  font-weight: 600;
+}
+.answer a:hover{ text-decoration: underline; }
+
+/* =========================
+   Footer (平均難易度 + rating)
+========================= */
+.post-footer{
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0,0,0,.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.avg {
-  margin-top: 10px;
-  font-size: 0.9em;
+.avg{
+  margin: 0;
+  font-size: .95rem;
   color: #444;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
 }
 
-.rating {
-  margin-top: 8px;
+/* 難易度バー */
+.diffbar{
+  width: 170px;
+  height: 10px;
+  border-radius: 999px;
+  background: #eee;
+  overflow: hidden;
+}
+.diffbar > i{
+  display:block;
+  height:100%;
+  width: var(--w);
+  background: #111;
+  opacity: .20;
 }
 
-.rating button {
-  margin: 3px;
+/* Rating buttons */
+.rating{
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rating button{
+  margin: 0;
   padding: 6px 10px;
   cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid var(--btnLine);
+  background: #f6f6f6;
+  min-width: 2.4rem;
 }
 
-.rating button.selected {
+.rating button:hover{
+  background: #ededed;
+}
+
+.rating button.selected{
   background: #ff9800;
-  color: white;
-  font-weight: bold;
+  color: #fff;
+  border-color: #ff9800;
+  font-weight: 800;
 }
 
-.rating button:disabled {
-  opacity: 0.6;
+.rating button:disabled{
+  opacity: .6;
   cursor: not-allowed;
 }
 
-.content {
-  white-space: pre-wrap;
+/* =========================
+   System Note (警告)
+========================= */
+.system-note{
+  padding: .9rem 1rem;
+  border-radius: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffe69c;
+  color: #664d03;
+  margin: 0 0 14px;
+}
+
+.muted{ color:#777; font-size:.95rem; }
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 720px){
+  main{ padding: 12px 12px 36px; }
+  .post{ padding: 16px; }
+  .toolbar{
+    gap: .45rem;
+    padding: 10px 0;
+  }
+  .toolbar button{
+    padding: .65rem .75rem;
+  }
+  .diffbar{ width: 140px; }
+}
+
+/* =========================
+   Dark mode (OS設定がdarkなら)
+========================= */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg: #0f1115;
+    --card:#141821;
+    --text:#f2f5ff;
+    --muted: rgba(242,245,255,.7);
+    --line: rgba(255,255,255,.08);
+    --btn:#151a24;
+    --btnLine: rgba(255,255,255,.12);
+    --shadow: 0 14px 40px rgba(0,0,0,.35);
+    --shadow2: 0 1px 14px rgba(0,0,0,.35);
+  }
+
+  header{ background:#0b0e14; }
+
+  .toolbar{
+    background: rgba(15,17,21,.75);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .toolbar input[type="search"]{
+    background: #0f131c;
+    color: var(--text);
+    border-color: var(--btnLine);
+  }
+
+  .tex{
+    background: #0f131c;
+    border-color: var(--btnLine);
+  }
+
+  .tex.collapsed::after{
+    background: linear-gradient(to bottom, rgba(15,19,28,0), rgba(15,19,28,1));
+  }
+
+  .explain{
+    background: #0f131c;
+    border-color: var(--btnLine);
+    border-left-color: rgba(255,255,255,.18);
+  }
+
+  .rating button{ background: #0f131c; border-color: var(--btnLine); }
+  .rating button:hover{ background: rgba(255,255,255,.06); }
+
+  .diffbar{ background: rgba(255,255,255,.12); }
+  .diffbar > i{ background: #fff; opacity:.18; }
+
+  .qnum{
+    border-color: rgba(255,255,255,.75);
+    background: transparent;
+    color: var(--text);
+  }
 }

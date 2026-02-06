@@ -149,11 +149,18 @@
 
   /* ---------- util: encoding付き fetch ---------- */
   async function fetchTextWithEncoding(url, encoding = "utf-8") {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
-    const buf = await res.arrayBuffer();
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+  const buf = await res.arrayBuffer();
+
+  try {
     return new TextDecoder(encoding).decode(buf);
+  } catch (e) {
+    console.warn(`TextDecoder(${encoding}) 失敗 → utf-8で再試行`, e);
+    return new TextDecoder("utf-8").decode(buf);
   }
+}
+
 
   /* ---------- util: LaTeX → 表示用に正規化（MathJax非対応を剥がす） ---------- */
   function normalizeLatexForMathJax(tex) {
@@ -194,33 +201,50 @@
 
   /* ---------- posts 自動生成（GitHub API） ---------- */
   async function loadPostIndex() {
-    const api = "https://api.github.com/repos/mikarinachan/mikarinachan.github.io/contents/posts";
-    const r = await fetch(api, { cache: "no-store" });
-    if (!r.ok) throw new Error(`HTTP ${r.status}: ${api}`);
-    const files = await r.json();
+  const cacheKey = "posts_index_cache_v1";
+  const cacheTimeKey = "posts_index_cache_time_v1";
+  const now = Date.now();
 
-    // 2025_6.tex 形式だけ採用
-    const posts = files
-      .filter(f => typeof f?.name === "string" && /^(\d{4})_(\d+)\.tex$/.test(f.name))
-      .map(f => {
-        const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
-        const year = m[1];
-        const no = m[2];
-
-        return {
-          id: f.name.replace(".tex", ""),
-          tex: f.download_url,       // raw URL
-          date: year,
-          no: Number(no),
-          source: "入試問題",
-          encoding: year === "2025" ? "shift_jis" : "utf-8"
-        };
-      });
-
-    // 年度降順 → 番号昇順（好みで変えてOK）
-    posts.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
-    return posts;
+  // 30分キャッシュ（好みで変更OK）
+  const cached = localStorage.getItem(cacheKey);
+  const cachedTime = Number(localStorage.getItem(cacheTimeKey) || "0");
+  if (cached && (now - cachedTime) < 30 * 60 * 1000) {
+    try { return JSON.parse(cached); } catch {}
   }
+
+  const api = "https://api.github.com/repos/mikarinachan/mikarinachan.github.io/contents/posts";
+  const r = await fetch(api, { cache: "no-store" });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${api}`);
+  const files = await r.json();
+
+  const posts = files
+    .filter(f => typeof f?.name === "string"
+  && /^(\d{4})_(\d+)\.tex$/.test(f.name)
+  && typeof f?.download_url === "string" && f.download_url)
+
+    .map(f => {
+      const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
+      const year = m[1];
+      const no = m[2];
+      return {
+        id: f.name.replace(".tex", ""),
+        tex: f.download_url,
+        date: year,
+        no: Number(no),
+        source: "入試問題",
+        encoding: year === "2025" ? "shift_jis" : "utf-8"
+      };
+    });
+
+  posts.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
+
+  // キャッシュ保存
+  localStorage.setItem(cacheKey, JSON.stringify(posts));
+  localStorage.setItem(cacheTimeKey, String(now));
+
+  return posts;
+}
+
 
   /* ---------- ratings（落ちても表示継続） ---------- */
   async function loadRatings() {

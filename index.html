@@ -269,7 +269,6 @@ timeline.before(toolbar);
       .replace(/\\ref\{[^}]*\}/g, "")
       .replace(/\\cite\{[^}]*\}/g, "")
 
-      .replace(/\\hspace\{[^}]*\}/g, "")
       // document前後を削除
       .replace(/^[\s\S]*?\\begin\{document\}/, "")
       .replace(/\\end\{document\}[\s\S]*$/, "")
@@ -286,18 +285,12 @@ timeline.before(toolbar);
       // 文章レイアウト環境は剥がす（中身だけ表示）
       .replace(/\\begin\{(?:flushleft|center|flushright)\}/g, "")
       .replace(/\\end\{(?:flushleft|center|flushright)\}/g, "")
-      .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "")
-      .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "")
+      .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "\n")
+      .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "\n")
+
       // {4} みたいな行頭の番号をバッジ用HTMLに変換
       .replace(/^\s*\{(\d+)\}\s*$/m, '<span class="qnum">$1</span>')
       .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, '<span class="qnum">$1</span>')
-
-
-
-      // item を見やすく（(1)も(i)もOK）
-      .replace(/\\item\s*\[\s*\(([^)]+)\)\s*\]\s*/g, "\n（$1） ")
-      .replace(/\\item\s*\[\s*([^\]]+)\s*\]\s*/g, "\n$1： ")
-      .replace(/\\item\b\s*/g, "\n・ ")
 
 
       // ありがちな整形

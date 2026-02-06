@@ -288,6 +288,12 @@ timeline.before(toolbar);
       .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "\n")
       .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "\n")
 
+      // ★これを追加（(i)(ii)(iii)も(1)も対応）
+      .replace(/\\item\s*\[\s*\(([^)]+)\)\s*\]\s*/g, "\n（$1） ")
+      .replace(/\\item\s*\[\s*([^\]]+)\s*\]\s*/g, "\n$1： ")
+      .replace(/\\item\b\s*/g, "\n・ ")
+
+
       // {4} みたいな行頭の番号をバッジ用HTMLに変換
       .replace(/^\s*\{(\d+)\}\s*$/m, '<span class="qnum">$1</span>')
       .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, '<span class="qnum">$1</span>')

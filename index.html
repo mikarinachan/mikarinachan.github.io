@@ -3,398 +3,376 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>受験数学難問発掘会（PDF版）</title>
+  <title>受験数学難問発掘会</title>
   <link rel="stylesheet" href="style.css" />
 
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea']
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
+
   <style>
-    :root { --card-radius: 14px; }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
-      background: #f7f7f7;
+      background: #f6f6f6;
       color: #111;
     }
     header {
       background: #222;
       color: #fff;
-      padding: 28px 16px;
-      text-align: center;
+      padding: 1.2rem 1rem;
     }
-    header h1 { margin: 0 0 6px; font-size: 26px; }
-    header p { margin: 0; opacity: 0.9; }
-
-    .wrap { max-width: 980px; margin: 18px auto; padding: 0 14px 40px; }
-
-    .toolbar {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 10px;
-      align-items: center;
-      margin: 14px 0 10px;
+    header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: .02em;
     }
-    .toolbar input {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      background: #fff;
-      font-size: 14px;
+    header p {
+      margin: .25rem 0 0;
+      opacity: .85;
+      font-size: .95rem;
     }
-    .toolbar select, .toolbar button {
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      background: #fff;
-      font-size: 14px;
-      cursor: pointer;
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 1.2rem 1rem 3rem;
     }
-    .toolbar button { background: #111; color: #fff; border-color: #111; }
-    .toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
-
     .post {
       background: #fff;
-      border-radius: var(--card-radius);
-      padding: 16px 16px 14px;
-      margin: 14px 0;
-      box-shadow: 0 10px 26px rgba(0,0,0,0.06);
+      border-radius: 14px;
+      padding: 1.25rem 1.25rem 1rem;
+      margin: 0 0 1rem;
+      box-shadow: 0 1px 10px rgba(0,0,0,.06);
     }
     .meta {
       color: #666;
-      font-size: 13px;
-      margin-bottom: 8px;
-      display: flex;
-      gap: 10px;
-      align-items: baseline;
-      flex-wrap: wrap;
+      font-size: 0.92rem;
+      margin-bottom: 0.75rem;
     }
-    .meta b { color: #111; }
-    .actions {
-      margin: 10px 0 6px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .actions a {
-      display: inline-block;
-      text-decoration: none;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      color: #111;
+    .content .tex {
+      white-space: pre-wrap;
+      font-size: 1.03rem;
+      line-height: 1.75;
       background: #fafafa;
-      font-size: 13px;
-    }
-    .pdfbox {
-      margin-top: 10px;
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #fff;
-    }
-    iframe.pdf {
-      width: 100%;
-      height: 900px;
-      border: 0;
-      display: block;
-      background: #fff;
-    }
-
-    .avg { margin-top: 10px; font-size: 13px; color: #333; }
-    .rating { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-    .rating button {
-      min-width: 40px;
-      padding: 9px 0;
+      padding: 1rem;
       border-radius: 10px;
-      border: 1px solid #cfcfcf;
-      background: #f2f2f2;
+      border: 1px solid #eee;
+      overflow-wrap: anywhere;
+    }
+    .explain {
+      margin-top: .8rem;
+      padding: .75rem .9rem;
+      border-left: 4px solid #ddd;
+      background: #fcfcfc;
+      border-radius: 10px;
+    }
+    .answer {
+      margin-top: .7rem;
+    }
+    .answer a {
+      color: #0b57d0;
+      text-decoration: none;
+    }
+    .answer a:hover { text-decoration: underline; }
+
+    .avg { margin-top: .9rem; color:#333; }
+    .rating { margin-top: .6rem; display:flex; gap:.35rem; flex-wrap:wrap; }
+    .rating button {
+      border: 1px solid #bbb;
+      background: #f4f4f4;
+      border-radius: 8px;
+      padding: .45rem .65rem;
       cursor: pointer;
-      font-weight: 600;
+      min-width: 2.4rem;
     }
-    .rating button.selected { outline: 2px solid #111; }
-    .rating button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .rating button:hover { background: #eee; }
+    .rating button:disabled { opacity: .55; cursor: not-allowed; }
+    .rating button.selected { border-color: #111; background: #e7e7e7; }
 
-    .note {
-      color: #444;
-      font-size: 13px;
-      background: #fff;
-      border: 1px solid #e7e7e7;
+    .system-note {
+      padding: .8rem 1rem;
       border-radius: 12px;
-      padding: 10px 12px;
-      margin: 14px 0;
+      background: #fff3cd;
+      border: 1px solid #ffe69c;
+      color: #664d03;
+      margin: 0 0 1rem;
     }
-
-    @media (max-width: 760px) {
-      .toolbar { grid-template-columns: 1fr 1fr; }
-      .toolbar button { grid-column: 1 / -1; }
-      iframe.pdf { height: 640px; }
-    }
+    .muted { color: #777; font-size: .95rem; }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>受験数学難問発掘会（PDF版）</h1>
-    <p>サイト作成: みかりな</p>
-  </header>
+<header>
+  <h1>受験数学難問発掘会</h1>
+  <p>サイト作成: みかりな</p>
+</header>
 
-  <div class="wrap">
-    <div class="note">
-      <div>✅ 使い方</div>
-      <ul style="margin: 6px 0 0 18px; padding: 0;">
-        <li><b>pdf/</b> フォルダに <b>YYYY_N.pdf</b>（例: <code>2025_6.pdf</code>）を置くだけで自動表示されます。</li>
-        <li>PDF埋め込みが効かない端末向けに「PDFを開く」リンクも出します。</li>
-      </ul>
-    </div>
+<main id="timeline"></main>
 
-    <div class="toolbar">
-      <input id="search" placeholder="検索（例: 2025 / 6 / 2025_6）" />
-      <select id="sort">
-        <option value="difficulty">難易度順（評価がある場合）</option>
-        <option value="date">年度順</option>
-        <option value="name">ファイル名順</option>
-      </select>
-      <button id="reload">再読み込み</button>
-    </div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <main id="timeline"></main>
-  </div>
+  /* ---------- Firebase ---------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
+    authDomain: "math-memo-870c0.firebaseapp.com",
+    projectId: "math-memo-870c0",
+    storageBucket: "math-memo-870c0.firebasestorage.app",
+    messagingSenderId: "396039327636",
+    appId: "1:396039327636:web:028aa61574d06623240981"
+  };
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    /* ---------- Firebase（あなたの設定のまま） ---------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
-      authDomain: "math-memo-870c0.firebaseapp.com",
-      projectId: "math-memo-870c0",
-      storageBucket: "math-memo-870c0.firebasestorage.app",
-      messagingSenderId: "396039327636",
-      appId: "1:396039327636:web:028aa61574d06623240981"
-    };
+  /* ---------- DOM ---------- */
+  const timeline = document.getElementById("timeline");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  function showNote(html) {
+    const div = document.createElement("div");
+    div.className = "system-note";
+    div.innerHTML = html;
+    timeline.prepend(div);
+  }
 
-    /* ---------- DOM ---------- */
-    const timeline = document.getElementById("timeline");
-    const searchEl = document.getElementById("search");
-    const sortEl = document.getElementById("sort");
-    const reloadBtn = document.getElementById("reload");
+  /* ---------- util: encoding付き fetch ---------- */
+  async function fetchTextWithEncoding(url, encoding = "utf-8") {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+    const buf = await res.arrayBuffer();
+    return new TextDecoder(encoding).decode(buf);
+  }
 
-    /* ---------- 設定（ここだけ必要なら変更） ---------- */
-    const OWNER = "mikarinachan";
-    const REPO  = "mikarinachan.github.io";
-    const PDF_DIR = "pdf"; // ← pdfフォルダ名を変えたいならここ
+  /* ---------- util: LaTeX → 表示用に正規化（MathJax非対応を剥がす） ---------- */
+  function normalizeLatexForMathJax(tex) {
+    return tex
+      // document前後を削除
+      .replace(/^[\s\S]*?\\begin\{document\}/, "")
+      .replace(/\\end\{document\}[\s\S]*$/, "")
 
-    /* ---------- util ---------- */
-    const escapeHtml = (s) =>
-      String(s)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+      // よくある前置き命令を削除（MathJaxは組版しない）
+      .replace(/\\documentclass(\[[^\]]*\])?\{[^}]*\}/g, "")
+      .replace(/\\usepackage(\[[^\]]*\])?\{[^}]*\}/g, "")
+      .replace(/\\pagestyle\{[^}]+\}/g, "")
+      .replace(/\\setlength\{[^}]+\}\{[^}]+\}/g, "")
 
-    function parsePdfName(name) {
-      // 期待: 2025_6.pdf
-      const m = name.match(/^(\d{4})_(\d+)\.pdf$/);
-      if (!m) return null;
-      return { year: m[1], no: m[2] };
-    }
+      // 文字サイズ命令を削除（{\huge 6} → 6）
+      .replace(/\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, "")
 
-    async function fetchJson(url) {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
-      return await res.json();
-    }
+      // 文章レイアウト環境は剥がす（中身だけ表示）
+      .replace(/\\begin\{(?:flushleft|center|flushright)\}/g, "")
+      .replace(/\\end\{(?:flushleft|center|flushright)\}/g, "")
+      .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "")
+      .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "")
 
-    async function loadRatingsMap() {
-      // 読み取り不可でも表示は続行
-      let ratingMap = {};
-      try {
-        const snap = await getDocs(collection(db, "ratings"));
-        snap.forEach(doc => {
-          const { postId, score } = doc.data();
-          (ratingMap[postId] ??= []).push(score);
-        });
-      } catch (e) {
-        console.warn("ratings 読み取り失敗（権限など）:", e);
-        ratingMap = {};
-      }
-      return ratingMap;
-    }
+      // item を見やすく
+      // \item[(1)] → （1）
+      .replace(/\\item\s*\[\((\d+)\)\]\s*/g, "\n（$1）")
+      // \item[foo] → foo：
+      .replace(/\\item\s*\[([^\]]+)\]\s*/g, "\n$1：")
+      // \item → ・
+      .replace(/\\item\b\s*/g, "\n・")
 
-    function enrichWithRatings(posts, ratingMap) {
-      return posts.map(p => {
-        const scores = ratingMap[p.id] ?? [];
-        const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
-        return { ...p, avg, count: scores.length };
+      // ありがちな整形
+      .replace(/\u3000+/g, " ")        // 全角スペース多重を1個に
+      .replace(/\r\n/g, "\n")          // 改行統一
+      .replace(/\n{3,}/g, "\n\n")      // 空行詰め
+      .trim();
+  }
+
+  /* ---------- posts 自動生成（GitHub API） ---------- */
+  async function loadPostIndex() {
+    const api = "https://api.github.com/repos/mikarinachan/mikarinachan.github.io/contents/posts";
+    const r = await fetch(api, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${api}`);
+    const files = await r.json();
+
+    // 2025_6.tex 形式だけ採用
+    const posts = files
+      .filter(f => typeof f?.name === "string" && /^(\d{4})_(\d+)\.tex$/.test(f.name))
+      .map(f => {
+        const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
+        const year = m[1];
+        const no = m[2];
+
+        return {
+          id: f.name.replace(".tex", ""),
+          tex: f.download_url,       // raw URL
+          date: year,
+          no: Number(no),
+          source: "入試問題",
+          encoding: year === "2025" ? "shift_jis" : "utf-8"
+        };
       });
-    }
 
-    function applySort(posts, mode) {
-      const arr = [...posts];
-      if (mode === "difficulty") {
-        arr.sort((a,b) => (b.avg || 0) - (a.avg || 0));
-      } else if (mode === "date") {
-        arr.sort((a,b) => {
-          const ya = Number(a.year || 0), yb = Number(b.year || 0);
-          if (yb !== ya) return yb - ya;
-          const na = Number(a.no || 0), nb = Number(b.no || 0);
-          return nb - na;
-        });
-      } else if (mode === "name") {
-        arr.sort((a,b) => a.filename.localeCompare(b.filename, "ja"));
-      }
-      return arr;
-    }
+    // 年度降順 → 番号昇順（好みで変えてOK）
+    posts.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
+    return posts;
+  }
 
-    function applyFilter(posts, q) {
-      const s = q.trim().toLowerCase();
-      if (!s) return posts;
-      return posts.filter(p => {
-        const hay = `${p.id} ${p.year} ${p.no} ${p.filename}`.toLowerCase();
-        return hay.includes(s);
+  /* ---------- ratings（落ちても表示継続） ---------- */
+  async function loadRatings() {
+    let ratingMap = {};
+    try {
+      const snap = await getDocs(collection(db, "ratings"));
+      snap.forEach(doc => {
+        const { postId, score } = doc.data() || {};
+        if (!postId || typeof score !== "number") return;
+        (ratingMap[postId] ??= []).push(score);
       });
+    } catch (e) {
+      console.warn("ratings 読み取り失敗（権限など）:", e);
+      ratingMap = {};
+      showNote("⚠️ 難易度データ（Firestore）が読み取れませんでした。表示は続行します。<div class='muted'>Console に詳細があります。</div>");
     }
+    return ratingMap;
+  }
 
-    function render(posts) {
-      timeline.innerHTML = "";
-      if (!posts.length) {
-        timeline.innerHTML = `<div class="note">表示できるPDFがありません（<code>${PDF_DIR}/YYYY_N.pdf</code> 形式のファイルを置いてください）</div>`;
-        return;
-      }
-
-      for (const p of posts) {
-        const ratedKey = `rated_${p.id}`;
-        const alreadyRated = localStorage.getItem(ratedKey);
-
-        const card = document.createElement("div");
-        card.className = "post";
-
-        const title = `${p.year}｜入試問題`;
-        const subtitle = `#${p.no}（${p.filename}）`;
-
-        card.innerHTML = `
-          <div class="meta">
-            <b>${escapeHtml(title)}</b>
-            <span>${escapeHtml(subtitle)}</span>
-          </div>
-
-          <div class="actions">
-            <a href="${p.pdf}" target="_blank" rel="noopener">PDFを開く</a>
-            <a href="${p.pdf}#page=1" target="_blank" rel="noopener">別タブ（1ページ目）</a>
-          </div>
-
-          <div class="pdfbox">
-            <iframe class="pdf" src="${p.pdf}" loading="lazy"></iframe>
-          </div>
-
-          <div class="avg" data-avg>
-            平均難易度：<b>${p.count ? p.avg.toFixed(2) : "未評価"}</b>
-            ${p.count ? `（${p.count}人）` : ""}
-          </div>
-
-          <div class="rating">
-            ${[1,2,3,4,5,6,7,8,9,10].map(n =>
-              `<button data-score="${n}" ${alreadyRated ? "disabled" : ""}>${n}</button>`
-            ).join("")}
-          </div>
-        `;
-
-        const avgDiv = card.querySelector("[data-avg]");
-
-        card.querySelectorAll("button").forEach(btn => {
-          btn.onclick = async () => {
-            if (localStorage.getItem(ratedKey)) return;
-
-            const score = Number(btn.dataset.score);
-            try {
-              await addDoc(collection(db, "ratings"), {
-                postId: p.id,
-                score,
-                createdAt: new Date()
-              });
-
-              const newAvg = (p.avg * p.count + score) / (p.count + 1);
-              p.avg = newAvg;
-              p.count += 1;
-
-              avgDiv.innerHTML = `平均難易度：<b>${newAvg.toFixed(2)}</b>（${p.count}人）`;
-
-              localStorage.setItem(ratedKey, score);
-              card.querySelectorAll("button").forEach(b => b.disabled = true);
-              btn.classList.add("selected");
-            } catch (e) {
-              console.error("rating 書き込み失敗:", e);
-              alert("評価の保存に失敗しました（Firestoreの権限設定を確認してください）");
-            }
-          };
-        });
-
-        timeline.appendChild(card);
-      }
-    }
-
-    async function loadAll() {
-      reloadBtn.disabled = true;
-      reloadBtn.textContent = "読み込み中…";
-      timeline.innerHTML = `<div class="note">読み込み中…</div>`;
-
+  /* ---------- tex 本文読み込み ---------- */
+  async function loadBodies(posts) {
+    for (const p of posts) {
       try {
-        // 1) pdfフォルダ一覧（GitHub API）
-        const listUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PDF_DIR}`;
-        const files = await fetchJson(listUrl);
-
-        // 2) pdfだけ＆命名規則に合うものだけ
-        const posts = (Array.isArray(files) ? files : [])
-          .filter(f => typeof f?.name === "string" && /^(\d{4})_(\d+)\.pdf$/.test(f.name))
-          .map(f => {
-            const { year, no } = parsePdfName(f.name);
-            return {
-              id: f.name.replace(".pdf", ""),
-              filename: f.name,
-              year, no,
-              pdf: f.download_url
-            };
-          });
-
-        // 3) ratings
-        const ratingMap = await loadRatingsMap();
-        let enriched = enrichWithRatings(posts, ratingMap);
-
-        // 4) UI適用（filter/sort）
-        const filtered = applyFilter(enriched, searchEl.value);
-        const sorted = applySort(filtered, sortEl.value);
-
-        render(sorted);
+        const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
+        p.body = normalizeLatexForMathJax(raw);
       } catch (e) {
         console.error(e);
-        timeline.innerHTML = `
-          <div class="note" style="border-color:#f0c; color:#700;">
-            読み込みに失敗しました：<br>
-            <code>${escapeHtml(e.message)}</code><br><br>
-            よくある原因：<br>
-            ・<b>${PDF_DIR}/</b> フォルダが存在しない<br>
-            ・ファイル名が <code>YYYY_N.pdf</code> 形式でない<br>
-            ・GitHub API レート制限（しばらく待つ）<br>
-          </div>
-        `;
-      } finally {
-        reloadBtn.disabled = false;
-        reloadBtn.textContent = "再読み込み";
+        p.body = `（tex 読み込み失敗: ${p.tex}）`;
       }
     }
+    return posts;
+  }
 
-    // UIイベント
-    searchEl.addEventListener("input", () => loadAll());
-    sortEl.addEventListener("change", () => loadAll());
-    reloadBtn.addEventListener("click", () => loadAll());
+  /* ---------- 描画 ---------- */
+  function buildCard(p, alreadyRated) {
+    const div = document.createElement("div");
+    div.className = "post";
 
-    // 起動
-    await loadAll();
-  </script>
+    div.innerHTML = `
+      <div class="meta">${p.date}｜${p.source}</div>
+
+      <div class="content">
+        <div class="tex"></div>
+      </div>
+
+      ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
+
+      ${p.answer ? `
+        <div class="answer">
+          <a href="${p.answer}" target="_blank" rel="noopener">▶ 模範解答を見る</a>
+        </div>` : ""}
+
+      <div class="avg" data-avg>
+        平均難易度：<b>${p.count ? p.avg.toFixed(2) : "未評価"}</b>
+        ${p.count ? `（${p.count}人）` : ""}
+      </div>
+
+      <div class="rating">
+        ${[1,2,3,4,5,6,7,8,9,10].map(n =>
+          `<button data-score="${n}" ${alreadyRated ? "disabled" : ""}>${n}</button>`
+        ).join("")}
+      </div>
+    `;
+    return div;
+  }
+
+  async function main() {
+    let posts = [];
+    try {
+      posts = await loadPostIndex();
+    } catch (e) {
+      console.error(e);
+      showNote(`❌ posts/ の一覧取得に失敗しました。<div class="muted">${String(e.message || e)}</div>`);
+      return;
+    }
+
+    if (posts.length === 0) {
+      showNote("⚠️ posts/ に対象ファイルが見つかりません。<div class='muted'>ファイル名は <b>2025_6.tex</b> のように <b>YYYY_N.tex</b> 形式にしてください。</div>");
+      return;
+    }
+
+    // ratings
+    const ratingMap = await loadRatings();
+
+    // tex本文
+    await loadBodies(posts);
+
+    // enriched
+    const enriched = posts.map(p => {
+      const scores = ratingMap[p.id] ?? [];
+      const avg = scores.length ? (scores.reduce((a,b)=>a+b,0) / scores.length) : 0;
+      return { ...p, avg, count: scores.length };
+    });
+
+    // 表示順：いまは「年度降順→番号昇順」。難易度順にしたければ下の行を有効化
+    // enriched.sort((a,b) => b.avg - a.avg);
+
+    for (const p of enriched) {
+      const ratedKey = `rated_${p.id}`;
+      const alreadyRated = localStorage.getItem(ratedKey);
+
+      const card = buildCard(p, alreadyRated);
+      const texEl = card.querySelector(".tex");
+      texEl.textContent = p.body;
+
+      const avgDiv = card.querySelector("[data-avg]");
+
+      // 評価ボタン
+      card.querySelectorAll("button").forEach(btn => {
+        btn.onclick = async () => {
+          if (localStorage.getItem(ratedKey)) return;
+
+          const score = Number(btn.dataset.score);
+          try {
+            await addDoc(collection(db, "ratings"), {
+              postId: p.id,
+              score,
+              createdAt: new Date()
+            });
+          } catch (e) {
+            console.error(e);
+            alert("評価の送信に失敗しました（権限/通信）。Console を確認してください。");
+            return;
+          }
+
+          const newAvg = (p.avg * p.count + score) / (p.count + 1);
+          p.avg = newAvg;
+          p.count += 1;
+
+          avgDiv.innerHTML = `平均難易度：<b>${newAvg.toFixed(2)}</b>（${p.count}人）`;
+
+          localStorage.setItem(ratedKey, String(score));
+          card.querySelectorAll("button").forEach(b => b.disabled = true);
+          btn.classList.add("selected");
+        };
+      });
+
+      timeline.appendChild(card);
+
+      // 追加した要素だけ MathJax を当てる（確実）
+      if (window.MathJax) {
+        try {
+          await MathJax.startup.promise;
+          await MathJax.typesetPromise([texEl]);
+        } catch (e) {
+          console.warn("MathJax typeset failed:", e);
+        }
+      }
+    }
+  }
+
+  await main();
+</script>
 </body>
 </html>

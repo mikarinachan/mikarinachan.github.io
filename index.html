@@ -86,6 +86,17 @@ async function fetchTextWithEncoding(url, encoding = "utf-8") {
   return new TextDecoder(encoding).decode(buf);
 }
 
+/* ---------- util: LaTeX preamble 削除 ---------- */
+function stripLatexPreamble(tex) {
+  return tex
+    // \documentclass ～ \begin{document} を削除
+    .replace(/^[\s\S]*?\\begin\{document\}/, "")
+    // \end{document} 以降を削除
+    .replace(/\\end\{document\}[\s\S]*$/, "")
+    .trim();
+}
+
+
 
 /* ---------- posts 自動生成 ---------- */
 
@@ -97,31 +108,22 @@ const files = await res.json();
 
 // ファイル名規則をパースして posts を作る
 const posts = files
-  .filter(f => f.name.endsWith(".tex"))
+  // 2025_6.tex 形式だけ採用（他の.texが混ざっても壊れない）
+  .filter(f => /^(\d{4})_(\d+)\.tex$/.test(f.name))
   .map(f => {
     const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
-
-    const name = f.name;
-    const year = m ? m[1] : "";
+    const year = m[1];
 
     return {
-  id: name.replace(".tex", ""),
-  tex: f.download_url,               // ★ここがポイント（raw URL）
-  source: "入試問題",
-  date: year,
-  round: "",
-  encoding: year === "2025" ? "shift_jis" : "utf-8"
-};
+      id: f.name.replace(".tex", ""),
+      tex: f.download_url, // raw URL（Pages配信に依存しない）
+      source: "入試問題",
+      date: year,
+      round: "",
+      encoding: year === "2025" ? "shift_jis" : "utf-8"
+    };
+  });
 
-
-
-
-
-
-
-
-
-/* ---------- tex 読み込み ---------- */
 
 
 for (const p of posts) {
@@ -134,7 +136,10 @@ for (const p of posts) {
   const encoding = p.encoding || "utf-8";
 
   try {
-    p.body = await fetchTextWithEncoding(p.tex, encoding);
+    p.body = stripLatexPreamble(
+  await fetchTextWithEncoding(p.tex, encoding)
+);
+
   } catch (e) {
     p.body = `（tex 読み込み失敗: ${p.tex}）`;
     console.error(e);

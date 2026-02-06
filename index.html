@@ -155,7 +155,10 @@
 
   /* ---------- DOM ---------- */
   const timeline = document.getElementById("timeline");
+  let sortMode = "year"; // ★追加：並び替えモード（年度順/難易度順）
+
   // --- 検索UI ---
+// --- 検索UI ---
 const toolbar = document.createElement("div");
 toolbar.style.display = "flex";
 toolbar.style.gap = "0.6rem";
@@ -185,9 +188,7 @@ clearBtn.onclick = () => {
   searchInput.dispatchEvent(new Event("input"));
 };
 
-toolbar.appendChild(searchInput);
-toolbar.appendChild(clearBtn);
-toolbar.appendChild(sortToggle);
+// ★並び替えボタン（この時点では押すとまだ動かなくてOK。後で main() でつなぐ）
 const sortToggle = document.createElement("button");
 sortToggle.textContent = "並び順：年度順";
 sortToggle.style.padding = "0.7rem 0.9rem";
@@ -196,19 +197,11 @@ sortToggle.style.border = "1px solid #ddd";
 sortToggle.style.background = "#fff";
 sortToggle.style.cursor = "pointer";
 
-sortToggle.onclick = () => {
-  if (sortMode === "year") {
-    sortMode = "difficulty";
-    sortToggle.textContent = "並び順：難易度順";
-  } else {
-    sortMode = "year";
-    sortToggle.textContent = "並び順：年度順";
-  }
-  resetList(sortPosts(currentList));
-};
-
-// ★ここ
+toolbar.appendChild(searchInput);
+toolbar.appendChild(clearBtn);
+toolbar.appendChild(sortToggle);
 timeline.before(toolbar);
+
 
 
   function showNote(html) {
@@ -396,7 +389,7 @@ timeline.before(toolbar);
 });
 
 // ★ここに追加
-let sortMode = "year"; // "year" | "difficulty"
+
 
 function sortPosts(list) {
   const arr = list.slice();
@@ -406,7 +399,8 @@ function sortPosts(list) {
   } else {
     // 年度降順 → 問題番号昇順
     arr.sort((a, b) => {
-      const d = b.date.localePunctuation ? 0 : b.date.localeCompare(a.date);
+      const d = b.date.localeCompare(a.date);
+
       if (d !== 0) return d;
       return a.no - b.no;
     });
@@ -530,6 +524,14 @@ function resetList(newList) {
 // 初期表示
 resetList(sortPosts(enriched));
 
+// 並び替えボタン（年度順 ↔ 難易度順）
+sortToggle.onclick = () => {
+  sortMode = (sortMode === "year") ? "difficulty" : "year";
+  sortToggle.textContent = (sortMode === "year") ? "並び順：年度順" : "並び順：難易度順";
+  resetList(sortPosts(currentList));
+};
+
+
 
     // --- 検索 ---
 function normalizeQuery(q) {
@@ -540,9 +542,10 @@ searchInput.addEventListener("input", async () => {
   const q = normalizeQuery(searchInput.value);
 
   if (!q) {
-    resetList(enriched);
-    return;
-  }
+  resetList(sortPosts(enriched));
+  return;
+}
+
 
   const metaMatched = enriched.filter(p => {
     const meta = `${p.date}_${p.no} ${p.source}`.toLowerCase();

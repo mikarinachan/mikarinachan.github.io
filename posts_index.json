@@ -1,11 +1,18 @@
 [
   {
+    "id": "utokyo-2023-r1",
+    "date": "2023",
+    "source": "東京大学 理系数学 2023 第1問",
+    "tex": "posts/utokyo-2023-r1.tex",
+    "explain": "積分評価と極限の融合問題。",
+    "answer": "https://bibo-blog.com/math-tokyo-univ-ri-2023-1/"
+  },
+  {
     "id": "2025_6",
     "tex": "posts/2025_6.tex",
+    "encoding": "shift_jis",
     "date": "2025",
     "no": 6,
-    "source": "入試問題",
-    "encoding": "shift_jis"
+    "source": "入試問題"
   }
 ]
-

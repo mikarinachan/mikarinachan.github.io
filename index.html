@@ -132,14 +132,17 @@ for (const p of posts) {
 
 /* ---------- ratings ---------- */
 
-const ratingSnap = await getDocs(collection(db, "ratings"));
-const ratingMap = {};
-
-ratingSnap.forEach(doc => {
-  const { postId, score } = doc.data();
-  if (!ratingMap[postId]) ratingMap[postId] = [];
-  ratingMap[postId].push(score);
-});
+let ratingMap = {};
+try {
+  const ratingSnap = await getDocs(collection(db, "ratings"));
+  ratingSnap.forEach(doc => {
+    const { postId, score } = doc.data();
+    (ratingMap[postId] ??= []).push(score);
+  });
+} catch (e) {
+  console.warn("ratings 読み取り失敗（権限など）:", e);
+  ratingMap = {};
+}
 
 /* ---------- 投稿データ ---------- */
 

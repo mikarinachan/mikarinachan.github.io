@@ -24,31 +24,27 @@ const db = getFirestore(app);
 const timeline = document.getElementById("timeline");
 let sortMode = "year"; // 並び替えモード（年度順/難易度順）
 
+/* ---------- A: header高さをCSS変数に同期 ---------- */
+function syncHeaderHeight() {
+  const h = document.querySelector("header")?.offsetHeight || 72;
+  document.documentElement.style.setProperty("--header-h", `${h}px`);
+}
+window.addEventListener("resize", syncHeaderHeight);
+
 /* ---------- Toolbar (search / clear / sort) ---------- */
 const toolbar = document.createElement("div");
-toolbar.style.display = "flex";
-toolbar.style.gap = "0.6rem";
-toolbar.style.alignItems = "center";
-toolbar.style.margin = "0 0 1rem";
+toolbar.className = "toolbar"; // ★CSS側の固定スタイル用
+
+const toolbarInner = document.createElement("div");
+toolbarInner.className = "toolbar-inner";
 
 const searchInput = document.createElement("input");
 searchInput.type = "search";
 searchInput.placeholder = "検索（例: 2025 / 6 / 複素数 / Re / 4a+1 など）";
-searchInput.style.flex = "1";
-searchInput.style.padding = "0.7rem 0.9rem";
-searchInput.style.borderRadius = "10px";
-searchInput.style.border = "1px solid #ddd";
-searchInput.style.fontSize = "1rem";
 searchInput.autocomplete = "off";
 
 const clearBtn = document.createElement("button");
 clearBtn.textContent = "クリア";
-clearBtn.style.padding = "0.7rem 0.9rem";
-clearBtn.style.borderRadius = "10px";
-clearBtn.style.border = "1px solid #ddd";
-clearBtn.style.background = "#fff";
-clearBtn.style.cursor = "pointer";
-
 clearBtn.onclick = () => {
   searchInput.value = "";
   searchInput.dispatchEvent(new Event("input"));
@@ -56,18 +52,18 @@ clearBtn.onclick = () => {
 
 const sortToggle = document.createElement("button");
 sortToggle.textContent = "並び順：年度順";
-sortToggle.style.padding = "0.7rem 0.9rem";
-sortToggle.style.borderRadius = "10px";
-sortToggle.style.border = "1px solid #ddd";
-sortToggle.style.background = "#fff";
-sortToggle.style.cursor = "pointer";
 
-toolbar.appendChild(searchInput);
-toolbar.appendChild(clearBtn);
-toolbar.appendChild(sortToggle);
+// toolbar組み立て
+toolbarInner.appendChild(searchInput);
+toolbarInner.appendChild(clearBtn);
+toolbarInner.appendChild(sortToggle);
+toolbar.appendChild(toolbarInner);
 
 // timeline は <main> の中にある前提
 timeline.before(toolbar);
+
+// 初回同期（DOMできてから）
+syncHeaderHeight();
 
 /* ---------- UI note ---------- */
 function showNote(html) {
@@ -222,19 +218,48 @@ async function loadRatings() {
   return ratingMap;
 }
 
+/* ---------- C: tags生成 ---------- */
+function buildTags(p) {
+  const tags = [];
+
+  if (p.date) tags.push(p.date);
+
+  if (p.source) {
+    const parts = String(p.source).replace(/[｜|・]/g, " ").split(/\s+/).filter(Boolean);
+    for (const t of parts.slice(0, 4)) tags.push(t);
+  }
+
+  if (p.no) tags.push(`第${p.no}問`);
+
+  return Array.from(new Set(tags)).slice(0, 6);
+}
+
+/* ---------- B: avg色分け ---------- */
+function applyAvgClass(avgDiv, avg) {
+  avgDiv.classList.remove("low", "mid", "high");
+  if (!Number.isFinite(avg) || avg <= 0) return;
+
+  if (avg < 4) avgDiv.classList.add("low");
+  else if (avg < 7) avgDiv.classList.add("mid");
+  else avgDiv.classList.add("high");
+}
+
 /* ---------- card ---------- */
 function buildCard(p, alreadyRated) {
   const div = document.createElement("div");
   div.className = "post";
 
+  const tagsHtml = buildTags(p).map((t) => `<span class="tag">${escapeHTML(t)}</span>`).join("");
+
   div.innerHTML = `
-    <div class="meta">${p.date}｜${p.source}</div>
+    <div class="meta">${escapeHTML(p.date)}｜${escapeHTML(p.source)}</div>
+    <div class="tags">${tagsHtml}</div>
 
     <div class="content">
       <div class="tex"></div>
     </div>
 
-    ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
+    ${p.explain ? `<div class="explain">解説：${escapeHTML(p.explain)}</div>` : ""}
 
     ${
       p.answer
@@ -245,8 +270,11 @@ function buildCard(p, alreadyRated) {
     }
 
     <div class="avg" data-avg>
-      平均難易度：<b>${p.count ? p.avg.toFixed(2) : "未評価"}</b>
-      ${p.count ? `（${p.count}人）` : ""}
+      <span>平均難易度：</span>
+      <span class="avg-badge">
+        <b>${p.count ? p.avg.toFixed(2) : "未評価"}</b>
+        ${p.count ? `（${p.count}人）` : ""}
+      </span>
     </div>
 
     <div class="rating">
@@ -307,8 +335,7 @@ async function renderOne(p) {
   // 3) QNUMだけHTMLとして復元
   s = s.replace(/%%QNUM:(\d+)%%/g, '<span class="qnum">$1</span>');
 
-  // 4) MathJaxのために区切り記号は生（escapeHTMLで壊れてない想定）
-  //    ※ここは実質そのままでもOK。念のため残してる。
+  // 4) MathJaxのための区切り（念のため）
   s = s
     .replace(/\\\(/g, "\\(").replace(/\\\)/g, "\\)")
     .replace(/\\\[/g, "\\[").replace(/\\\]/g, "\\]")
@@ -316,7 +343,9 @@ async function renderOne(p) {
 
   texEl.innerHTML = s;
 
+  // avg色
   const avgDiv = card.querySelector("[data-avg]");
+  applyAvgClass(avgDiv, p.avg);
 
   card.querySelectorAll("button").forEach((btn) => {
     btn.onclick = async () => {
@@ -339,7 +368,12 @@ async function renderOne(p) {
       p.avg = newAvg;
       p.count += 1;
 
-      avgDiv.innerHTML = `平均難易度：<b>${newAvg.toFixed(2)}</b>（${p.count}人）`;
+      // badge形式で更新
+      avgDiv.innerHTML = `
+        <span>平均難易度：</span>
+        <span class="avg-badge"><b>${newAvg.toFixed(2)}</b>（${p.count}人）</span>
+      `;
+      applyAvgClass(avgDiv, newAvg);
 
       localStorage.setItem(ratedKey, String(score));
       card.querySelectorAll("button").forEach((b) => (b.disabled = true));
@@ -473,6 +507,11 @@ async function main() {
 
     resetList(sortPosts(merged));
   });
+
+  // 追加：header高さを再同期（フォントロード等でズレる対策）
+  requestAnimationFrame(syncHeaderHeight);
+  setTimeout(syncHeaderHeight, 300);
+  setTimeout(syncHeaderHeight, 1200);
 }
 
 main();

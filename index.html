@@ -98,7 +98,6 @@ const files = await res.json();
 const posts = files
   .filter(f => f.name.endsWith(".tex"))
   .map(f => {
-    // ファイル名例: 2025_6.tex
     const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
 
     const name = f.name;

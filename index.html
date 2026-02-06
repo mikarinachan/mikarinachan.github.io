@@ -513,8 +513,9 @@ searchInput.addEventListener("input", async () => {
 });
 
 
+  } // ← ★これを追加（main を閉じる）
 
-  await main();
+  main(); // ← ★これにする（await main(); じゃない）
 </script>
 </body>
 </html>

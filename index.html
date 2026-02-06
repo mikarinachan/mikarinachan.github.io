@@ -109,6 +109,20 @@
       margin: 0 0 1rem;
     }
     .muted { color: #777; font-size: .95rem; }
+
+    .qnum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2em;
+  height: 2.2em;
+  border: 2px solid #222;
+  border-radius: 6px;
+  font-weight: 700;
+  background: #fff;
+  margin-bottom: 0.6em;
+}
+
   </style>
 </head>
 
@@ -183,6 +197,9 @@
       .replace(/\\end\{(?:flushleft|center|flushright)\}/g, "")
       .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "")
       .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "")
+      // {4} みたいな行頭の番号をバッジ用HTMLに変換
+      .replace(/^\s*\{(\d+)\}\s*$/m, '<span class="qnum">$1</span>')
+
 
       // item を見やすく
       // \item[(1)] → （1）
@@ -348,7 +365,7 @@
 
       const card = buildCard(p, alreadyRated);
       const texEl = card.querySelector(".tex");
-      texEl.textContent = p.body;
+      texEl.innerHTML = p.body;
 
       const avgDiv = card.querySelector("[data-avg]");
 

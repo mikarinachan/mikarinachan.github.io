@@ -252,7 +252,8 @@ timeline.before(toolbar);
       .replace(/\\bibliographystyle\{[^}]*\}/g, "")
 
       // picture/tikz/pstricks等（丸ごと消す）
-      .replace(/\\begin\{(?:tikzpicture|picture|pspicture|circuitikz)\}[\s\S]*?\\end\{\1\}/g, "")
+      .replace(/\\begin\{(tikzpicture|picture|pspicture|circuitikz)\}[\s\S]*?\\end\{\1\}/g, "")
+
 
       // \raisebox などレイアウト調整（エラーになりやすい）
       .replace(/\\raisebox\{[^}]*\}\{[^}]*\}/g, "")
@@ -295,8 +296,9 @@ timeline.before(toolbar);
 
 
       // {4} みたいな行頭の番号をバッジ用HTMLに変換
-      .replace(/^\s*\{(\d+)\}\s*$/m, '<span class="qnum">$1</span>')
-      .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, '<span class="qnum">$1</span>')
+      .replace(/^\s*\{(\d+)\}\s*$/m, '[[QNUM:$1]]')
+      .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, '[[QNUM:$1]]')
+
 
 
       // ありがちな整形
@@ -476,7 +478,10 @@ async function renderOne(p) {
   const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
   p.body = normalizeLatexForMathJax(raw);
 }
-texEl.innerHTML = p.body;
+const safe = escapeHTML(p.body)
+  .replace(/\[\[QNUM:(\d+)\]\]/g, '<span class="qnum">$1</span>');
+texEl.innerHTML = safe;
+
 
 
   const avgDiv = card.querySelector("[data-avg]");

@@ -98,27 +98,26 @@ const files = await res.json();
 const posts = files
   .filter(f => f.name.endsWith(".tex"))
   .map(f => {
-    // 例: utokyo_2023_r1.tex
+    // ファイル名例: 2025_6.tex
     const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
-
 
     const name = f.name;
     const year = m ? m[1] : "";
 
-
     return {
       id: name.replace(".tex", ""),
       tex: `posts/${name}`,
-      source: m ? m[1] : "unknown",
+      source: "入試問題",
       date: year,
-      round: m?.[3] ?? "",
+      round: "",
       encoding: year === "2025" ? "shift_jis" : "utf-8"
     };
   });
 
 
 
-  });
+
+
 
 
 

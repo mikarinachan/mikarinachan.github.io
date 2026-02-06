@@ -80,7 +80,8 @@ const timeline = document.getElementById("timeline");
   /* ---------- util: encoding付き fetch ---------- */
 async function fetchTextWithEncoding(url, encoding = "utf-8") {
   const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+
   const buf = await res.arrayBuffer();
   return new TextDecoder(encoding).decode(buf);
 }
@@ -104,14 +105,14 @@ const posts = files
     const year = m ? m[1] : "";
 
     return {
-      id: name.replace(".tex", ""),
-      tex: `posts/${name}`,
-      source: "入試問題",
-      date: year,
-      round: "",
-      encoding: year === "2025" ? "shift_jis" : "utf-8"
-    };
-  });
+  id: name.replace(".tex", ""),
+  tex: f.download_url,               // ★ここがポイント（raw URL）
+  source: "入試問題",
+  date: year,
+  round: "",
+  encoding: year === "2025" ? "shift_jis" : "utf-8"
+};
+
 
 
 

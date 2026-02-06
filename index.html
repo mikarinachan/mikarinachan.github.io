@@ -82,14 +82,24 @@ const posts = await fetch("posts.json").then(r => r.json());
 
 /* ---------- tex 読み込み ---------- */
 
+
 for (const p of posts) {
   if (!p.tex) {
     p.body = "";
     continue;
   }
-  const tex = await fetch(p.tex).then(r => r.text());
-  p.body = tex;
+
+  // posts.json に encoding があれば使う（なければ UTF-8）
+  const encoding = p.encoding || "utf-8";
+
+  try {
+    p.body = await fetchTextWithEncoding(p.tex, encoding);
+  } catch (e) {
+    p.body = `（tex 読み込み失敗: ${p.tex}）`;
+    console.error(e);
+  }
 }
+
 
 /* ---------- ratings ---------- */
 

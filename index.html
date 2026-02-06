@@ -532,34 +532,6 @@ searchInput.addEventListener("input", async () => {
 });
 
 
-          
-
-          const newAvg = (p.avg * p.count + score) / (p.count + 1);
-          p.avg = newAvg;
-          p.count += 1;
-
-          avgDiv.innerHTML = `平均難易度：<b>${newAvg.toFixed(2)}</b>（${p.count}人）`;
-
-          localStorage.setItem(ratedKey, String(score));
-          card.querySelectorAll("button").forEach(b => b.disabled = true);
-          btn.classList.add("selected");
-        };
-      });
-
-      timeline.appendChild(card);
-
-      // 追加した要素だけ MathJax を当てる（確実）
-      if (window.MathJax) {
-        try {
-          await MathJax.startup.promise;
-          await MathJax.typesetPromise([texEl]);
-        } catch (e) {
-          console.warn("MathJax typeset failed:", e);
-        }
-      }
-    }
-  }
-
   await main();
 </script>
 </body>

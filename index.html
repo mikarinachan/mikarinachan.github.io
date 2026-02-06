@@ -290,15 +290,15 @@ timeline.before(toolbar);
       .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "")
       // {4} みたいな行頭の番号をバッジ用HTMLに変換
       .replace(/^\s*\{(\d+)\}\s*$/m, '<span class="qnum">$1</span>')
+      .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, '<span class="qnum">$1</span>')
 
 
-      // item を見やすく
-      // \item[(1)] → （1）
-      .replace(/\\item\s*\[\((\d+)\)\]\s*/g, "\n（$1）")
-      // \item[foo] → foo：
-      .replace(/\\item\s*\[([^\]]+)\]\s*/g, "\n$1：")
-      // \item → ・
-      .replace(/\\item\b\s*/g, "\n・")
+
+      // item を見やすく（(1)も(i)もOK）
+      .replace(/\\item\s*\[\s*\(([^)]+)\)\s*\]\s*/g, "\n（$1） ")
+      .replace(/\\item\s*\[\s*([^\]]+)\s*\]\s*/g, "\n$1： ")
+      .replace(/\\item\b\s*/g, "\n・ ")
+
 
       // ありがちな整形
       .replace(/\u3000+/g, " ")        // 全角スペース多重を1個に

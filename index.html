@@ -86,24 +86,38 @@ async function fetchTextWithEncoding(url, encoding = "utf-8") {
   return new TextDecoder(encoding).decode(buf);
 }
 
-/* ---------- util: LaTeX preamble 削除 ---------- */
+/* ---------- util: LaTeX → MathJax 正規化 ---------- */
 function stripLatexPreamble(tex) {
   return tex
     // document 前文を削除
     .replace(/^[\s\S]*?\\begin\{document\}/, "")
-
     // document 終了を削除
     .replace(/\\end\{document\}[\s\S]*$/, "")
 
-    // レイアウト系命令を削除（MathJax非対応）
+    // MathJax非対応のレイアウト命令を削除
     .replace(/\\setlength\{[^}]+\}\{[^}]+\}/g, "")
+    .replace(/\\pagestyle\{[^}]+\}/g, "")
 
-    // flushleft 環境を div 相当として剥がす
-    .replace(/\\begin\{flushleft\}/g, "")
-    .replace(/\\end\{flushleft\}/g, "")
+    // 文字サイズ命令を削除（{\huge 6} → 6）
+    .replace(/\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, "")
 
+    // flushleft / center / flushright を剥がす
+    .replace(/\\begin\{(?:flushleft|center|flushright)\}/g, "")
+    .replace(/\\end\{(?:flushleft|center|flushright)\}/g, "")
+
+    // itemize / enumerate / description を剥がす
+    .replace(/\\begin\{(?:itemize|enumerate|description)\}/g, "")
+    .replace(/\\end\{(?:itemize|enumerate|description)\}/g, "")
+
+    // \item を箇条書き風に
+    .replace(/\\item\s*\[([^\]]+)\]/g, "\n• $1 ")
+    .replace(/\\item\b/g, "\n• ")
+
+    // 余分な改行整理
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
 
 
 

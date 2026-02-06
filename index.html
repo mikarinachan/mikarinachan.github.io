@@ -13,7 +13,7 @@
         displayMath: [['\\[', '\\]'], ['$$', '$$']]
       },
       options: {
-        skipHtmlTags: ['script','noscript','style','textarea','pre']
+        skipHtmlTags: ['script','noscript','style','textarea']
       }
     };
   </script>
@@ -32,7 +32,7 @@
       font-size: 0.9em;
       margin-bottom: 0.5em;
     }
-    .content pre {
+    .content .tex {
       white-space: pre-wrap;
       font-size: 1.05em;
       line-height: 1.7;
@@ -40,10 +40,7 @@
       padding: 1em;
       border-radius: 6px;
     }
-    .rating button.selected {
-      background: #333;
-      color: #fff;
-    }
+
   </style>
 </head>
 
@@ -133,7 +130,7 @@ for (const p of enriched) {
     <div class="meta">${p.date}｜${p.source}</div>
 
     <div class="content">
-      <pre>${p.body}</pre>
+      <div class="tex"></div>
     </div>
 
     ${p.explain ? `<div class="explain">解説：${p.explain}</div>` : ""}
@@ -154,6 +151,10 @@ for (const p of enriched) {
       ).join("")}
     </div>
   `;
+
+  const texEl = div.querySelector(".tex");
+  texEl.textContent = p.body;
+
 
   const avgDiv = div.querySelector("[data-avg]");
 
@@ -188,7 +189,8 @@ for (const p of enriched) {
 /* ---------- MathJax ---------- */
 
 await MathJax.startup.promise;
-MathJax.typeset();
+await MathJax.typesetPromise();
+
 </script>
 </body>
 </html>

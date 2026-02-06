@@ -96,10 +96,18 @@ const posts = files
       tex: `posts/${f.name}`,
       source: m ? m[1] : "unknown",
       date: m ? m[2] : "",
-      round: m?.[3] ?? ""
+      round: m?.[3] ?? "",
+      encoding: f.name.includes("_sjis") ? "shift_jis" : "utf-8"
     };
+
   });
 
+async function fetchTextWithEncoding(url, encoding = "utf-8") {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  const buf = await res.arrayBuffer();
+  return new TextDecoder(encoding).decode(buf);
+}
 
 /* ---------- tex 読み込み ---------- */
 

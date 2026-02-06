@@ -376,7 +376,8 @@ timeline.before(toolbar);
 // --- 無限スクロール設定 ---
 const PAGE_SIZE = 5;
 let currentList = enriched.slice();   // 表示対象（検索で変わる）
-let rendered = 0;                     // 何件描画したか
+let rendered = 0;         // 何件描画したか
+let isLoading = false;   // ★追加：二重描画防止
 let observer = null;
 
 const sentinel = document.createElement("div");
@@ -444,16 +445,21 @@ texEl.innerHTML = p.body;
 }
 
 async function renderNextPage() {
+  if (isLoading) return;     // ★追加
+  isLoading = true;          // ★追加
+
   const next = currentList.slice(rendered, rendered + PAGE_SIZE);
   for (const p of next) await renderOne(p);
   rendered += next.length;
 
-  // もう無ければ sentinel を消す（監視止め）
   if (rendered >= currentList.length) {
     sentinel.remove();
     if (observer) observer.disconnect();
   }
+
+  isLoading = false;         // ★追加
 }
+
 
 function resetList(newList) {
   currentList = newList.slice();

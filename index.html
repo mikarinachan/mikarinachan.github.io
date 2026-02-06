@@ -493,9 +493,25 @@ async function renderOne(p) {
   const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
   p.body = normalizeLatexForMathJax(raw);
 }
-const safe = escapeHTML(p.body)
-  .replace(/\[\[QNUM:(\d+)\]\]/g, '<span class="qnum">$1</span>');
-texEl.innerHTML = safe;
+// 1) QNUM だけ先に避難（許可HTML）
+let s = (p.body ?? "");
+s = s.replace(/\[\[QNUM:(\d+)\]\]/g, '%%QNUM:$1%%');
+
+// 2) 全体をHTMLエスケープ（危険HTML排除）
+s = escapeHTML(s);
+
+// 3) 避難させたQNUMだけHTMLとして復元
+s = s.replace(/%%QNUM:(\d+)%%/g, '<span class="qnum">$1</span>');
+
+// 4) MathJaxのために、エスケープされてしまった区切り記号を戻す
+//    $ \ ( ) [ ] は MathJax のトリガなので生に戻す
+s = s
+  .replace(/\\\(/g, "\\(").replace(/\\\)/g, "\\)")
+  .replace(/\\\[/g, "\\[").replace(/\\\]/g, "\\]")
+  .replace(/\$/g, "$");
+
+texEl.innerHTML = s;
+
 
 
 

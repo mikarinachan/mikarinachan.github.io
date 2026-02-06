@@ -492,18 +492,15 @@ searchInput.addEventListener("input", async () => {
     return;
   }
 
-  // まずはメタ（年・番号）で絞る
   const metaMatched = enriched.filter(p => {
     const meta = `${p.date}_${p.no} ${p.source}`.toLowerCase();
     return meta.includes(q);
   });
 
-  // 本文検索（p.body に含まれるか）
-  // ※ body はすでに全件ロード済み（現状の実装は loadBodies(posts) で全件読み込み）
-  // もし将来「本文は必要時だけ読み込み」にしたくなったら言って。もっと高速化できる。
-  const bodyMatched = enriched.filter(p => (p.body || "").toLowerCase().includes(q));
+  const bodyMatched = enriched.filter(p =>
+    (p.body || "").toLowerCase().includes(q)
+  );
 
-  // 重複を除いて結合
   const merged = [];
   const seen = new Set();
   for (const p of [...metaMatched, ...bodyMatched]) {
@@ -514,6 +511,7 @@ searchInput.addEventListener("input", async () => {
 
   resetList(merged);
 });
+
 
 
   await main();

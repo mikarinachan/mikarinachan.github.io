@@ -187,6 +187,26 @@ clearBtn.onclick = () => {
 
 toolbar.appendChild(searchInput);
 toolbar.appendChild(clearBtn);
+const sortToggle = document.createElement("button");
+sortToggle.textContent = "並び順：年度順";
+sortToggle.style.padding = "0.7rem 0.9rem";
+sortToggle.style.borderRadius = "10px";
+sortToggle.style.border = "1px solid #ddd";
+sortToggle.style.background = "#fff";
+sortToggle.style.cursor = "pointer";
+
+sortToggle.onclick = () => {
+  if (sortMode === "year") {
+    sortMode = "difficulty";
+    sortToggle.textContent = "並び順：難易度順";
+  } else {
+    sortMode = "year";
+    sortToggle.textContent = "並び順：年度順";
+  }
+  resetList(sortPosts(currentList));
+};
+
+// ★ここ
 timeline.before(toolbar);
 
 
@@ -261,14 +281,17 @@ timeline.before(toolbar);
   const cleaned = posts
     .filter(p => p && p.id && p.tex)
     .map(p => ({
-      id: String(p.id),
-      tex: String(p.tex),                 // ← posts/2025_6.tex みたいな相対パスOK
-      date: String(p.date ?? ""),
-      no: Number(p.no ?? 0),
-      source: String(p.source ?? "入試問題"),
-      encoding: String(p.encoding ?? "utf-8"),
-      body: ""                            // ← 後で読み込む用
-    }));
+  id: String(p.id),
+  tex: String(p.tex),
+  date: String(p.date ?? ""),
+  no: Number(p.no ?? 0),
+  source: String(p.source ?? "入試問題"),
+  encoding: String(p.encoding ?? "utf-8"),
+  explain: String(p.explain ?? ""),   // ★追加
+  answer: String(p.answer ?? ""),     // ★追加
+  body: ""
+}));
+
 
   cleaned.sort((a, b) => (b.date.localeCompare(a.date) || a.no - b.no));
   return cleaned;
@@ -369,7 +392,28 @@ timeline.before(toolbar);
       const scores = ratingMap[p.id] ?? [];
       const avg = scores.length ? (scores.reduce((a,b)=>a+b,0) / scores.length) : 0;
       return { ...p, avg, count: scores.length };
+});
+
+// ★ここに追加
+let sortMode = "year"; // "year" | "difficulty"
+
+function sortPosts(list) {
+  const arr = list.slice();
+
+  if (sortMode === "difficulty") {
+    arr.sort((a, b) => b.avg - a.avg);
+  } else {
+    // 年度降順 → 問題番号昇順
+    arr.sort((a, b) => {
+      const d = b.date.localePunctuation ? 0 : b.date.localeCompare(a.date);
+      if (d !== 0) return d;
+      return a.no - b.no;
     });
+  }
+
+  return arr;
+}
+
 
     // 表示順：いまは「年度降順→番号昇順」。難易度順にしたければ下の行を有効化
     // enriched.sort((a,b) => b.avg - a.avg);
@@ -483,7 +527,8 @@ function resetList(newList) {
 }
 
 // 初期表示
-resetList(enriched);
+resetList(sortPosts(enriched));
+
 
     // --- 検索 ---
 function normalizeQuery(q) {
@@ -515,7 +560,7 @@ searchInput.addEventListener("input", async () => {
     merged.push(p);
   }
 
-  resetList(merged);
+  resetList(sortPosts(merged));
 });
 
 

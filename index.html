@@ -99,10 +99,12 @@ const posts = files
   .filter(f => f.name.endsWith(".tex"))
   .map(f => {
     // 例: utokyo_2023_r1.tex
-    const m = f.name.match(/^(.+?)_(\d{4})(?:_(r\d))?\.tex$/);
+    const m = f.name.match(/^(\d{4})_(\d+)\.tex$/);
+
 
     const name = f.name;
-    const year = m ? m[2] : "";
+    const year = m ? m[1] : "";
+
 
     return {
       id: name.replace(".tex", ""),

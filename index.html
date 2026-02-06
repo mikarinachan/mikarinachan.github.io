@@ -188,7 +188,7 @@ clearBtn.onclick = () => {
   searchInput.dispatchEvent(new Event("input"));
 };
 
-// ★並び替えボタン（この時点では押すとまだ動かなくてOK。後で main() でつなぐ）
+// ★並び替えボタン（定義は1回だけ）
 const sortToggle = document.createElement("button");
 sortToggle.textContent = "並び順：年度順";
 sortToggle.style.padding = "0.7rem 0.9rem";
@@ -201,6 +201,7 @@ toolbar.appendChild(searchInput);
 toolbar.appendChild(clearBtn);
 toolbar.appendChild(sortToggle);
 timeline.before(toolbar);
+
 
 
 

@@ -29,14 +29,13 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     return UNIVERSITY_NAME_MAP[key] || source;
   }
 
-  // LaTeX検索用ゆれ吸収
   function normalizeLatexForSearch(s) {
     let t = normalizeQuery(s);
 
     // ^{2} -> ^2, _{k} -> _k
     t = t.replace(/\^\{([^}]+)\}/g, "^$1").replace(/_\{([^}]+)\}/g, "_$1");
 
-    // {2} {n} の単発を外す（邪魔になりやすい）
+    // {2} {n} みたいな単発も外す（邪魔になりやすい）
     t = t.replace(/\{([a-z0-9]+)\}/g, "$1");
 
     // 空白は全部消す（n ^ { 2 } も拾う）
@@ -63,14 +62,18 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     const year = extractYear(p.date);
     const uniJa = displayUniversityName(p.source);
     const metaRaw =
-      `${p.date || ""} ${year} ${p.no || ""} ${p.source || ""} ${uniJa} ${p.id || ""}`;
+      String(p.date || "") + " " +
+      String(year || "") + " " +
+      String(p.no || "") + " " +
+      String(p.source || "") + " " +
+      String(uniJa || "") + " " +
+      String(p.id || "");
     return normalizeLatexForSearch(metaRaw);
   }
 
   return async function runSearch(inputValue, mySeq) {
     const terms = parseTerms(inputValue);
 
-    // 空なら全件
     if (terms.length === 0) {
       resetList(sortPosts(enriched));
       return;
@@ -95,7 +98,7 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
         try {
           await ensureBodyLoaded(p);
         } catch (e) {
-          console.warn("本文ロード失敗:", p?.tex, e);
+          console.warn("本文ロード失敗:", p && p.tex, e);
         }
 
         if (mySeq !== getSearchSeq()) return;
@@ -117,7 +120,7 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     // マージ（重複除去）
     const merged = [];
     const seen = new Set();
-    for (const p of [...quickMatched, ...fullMatched]) {
+    for (const p of quickMatched.concat(fullMatched)) {
       if (!p || seen.has(p.id)) continue;
       seen.add(p.id);
       merged.push(p);

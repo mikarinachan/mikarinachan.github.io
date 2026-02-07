@@ -1,5 +1,5 @@
 // js/render.js
-import { escapeHTML, latexBodyToSafeHTML } from "./latex.js";
+import { escapeHTML } from "./latex.js";
 import { submitRating } from "./firebase.js";
 
 export function buildTags(p) {
@@ -29,8 +29,17 @@ export function buildCard(p, alreadyRated) {
 
   const tagsHtml = buildTags(p).map((t) => `<span class="tag">${escapeHTML(t)}</span>`).join("");
 
+  const uni = escapeHTML(p?.source ?? "");
+  const year = escapeHTML(p?.date ?? "");
+  const qnum = p?.no ? String(p.no) : "";
+
   div.innerHTML = `
-    <div class="meta">${escapeHTML(p?.date ?? "")}｜${escapeHTML(p?.source ?? "")}</div>
+    <div class="problem-head">
+      <!-- ✅ 左上：大学名＋年度 -->
+      <div class="problem-info">${uni}${year ? ` ${year}年度` : ""}</div>
+      ${qnum ? `<div class="qnum">${escapeHTML(qnum)}</div>` : ""}
+    </div>
+
     <div class="tags">${tagsHtml}</div>
 
     <div class="content">
@@ -80,7 +89,7 @@ export async function wireRatingButtons(arg1, arg2) {
   }
 
   if (!card) return;
-  if (!p || !p.id) return; // ★ここで落とさない
+  if (!p || !p.id) return;
 
   const ratedKey = `rated_${p.id}`;
   const avgDiv = card.querySelector("[data-avg]");

@@ -217,3 +217,19 @@ main{
   background:#fff;
   margin-bottom:.6em;
 }
+
+/* ✅ 問題カード左上に大学名＋年度を表示するヘッダ */
+.problem-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:.8rem;
+  margin-bottom:.55rem;
+}
+
+.problem-info{
+  font-weight:700;
+  font-size:1.02rem;
+  line-height:1.2;
+}
+

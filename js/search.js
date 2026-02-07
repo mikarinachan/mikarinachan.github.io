@@ -25,15 +25,40 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
 
   // 日本語を消さない正規化（LaTeXゆれ対応）
   function norm(s) {
-    if (s == null) return "";
-    let t = String(s).normalize("NFKC").toLowerCase();
-    t = t
-      .replace(/\^\{([^}]+)\}/g, "^$1")
-      .replace(/_\{([^}]+)\}/g, "_$1")
-      .replace(/\{([a-z0-9]+)\}/gi, "$1")
-      .replace(/\s+/g, "");
-    return t;
-  }
+  if (s == null) return "";
+  let t = String(s).normalize("NFKC").toLowerCase();
+
+  // LaTeXゆれ
+  t = t
+    .replace(/\^\{([^}]+)\}/g, "^$1")
+    .replace(/_\{([^}]+)\}/g, "_$1")
+    .replace(/\\cdot/g, "*")
+    .replace(/\\times/g, "*")
+    .replace(/\\,/g, "")
+    .replace(/\\!/g, "")
+    .replace(/\\;/g, "")
+    .replace(/\\quad/g, "")
+    .replace(/\\qquad/g, "");
+
+  // 余計な括弧を落とす（数式検索を強くする）
+  t = t.replace(/[{}]/g, "");
+
+  // 等号・括弧・カンマの揺れを吸収（必要ならさらに増やせる）
+  // t = t.replace(/[()]/g, "");
+
+  // 空白は全部削除
+  t = t.replace(/\s+/g, "");
+
+  // ★ 超重要：暗黙の掛け算を吸収
+  // 例: "a x" / "ax" / "a*x" を同一視したい → "*" を消す
+  t = t.replace(/\*/g, "");
+
+  // ★ "y=" の有無を吸収（式だけ検索しやすく）
+  t = t.replace(/^y=/, "");
+
+  return t;
+}
+
 
   function parseTerms(inputValue) {
     return String(inputValue || "")

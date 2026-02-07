@@ -1,6 +1,6 @@
 // js/search.js
 import { ensureBodyLoaded } from "./posts.js";
-
+console.log("Search 1810"); // これがConsoleに出れば新Searchが動いてる.
 /**
  * 最終検索エンジン
  * - カンマ区切り AND（, 、 ，）

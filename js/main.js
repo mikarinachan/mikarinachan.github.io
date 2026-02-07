@@ -1,15 +1,15 @@
-// js/main.js
+// /js/main.js
 import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
 import { loadRatings } from "./firebase.js";
+import { normalizeQuery } from "./latex.js";
 import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
 import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
 import { createSearchRunner } from "./search.js";
 
 const timeline = document.getElementById("timeline");
-if (!timeline) throw new Error("#timeline が見つかりません");
+if (!timeline) throw new Error("#timeline が見つかりません（index.html を確認）");
 
-/* ---------- state ---------- */
-let sortMode = "year"; // "year" | "difficulty"
+let sortMode = "year";
 const PAGE_SIZE = 5;
 
 let currentList = [];
@@ -20,16 +20,13 @@ let observer = null;
 const sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
-/* ---------- sort ---------- */
 function sortPosts(list) {
   const arr = list.slice();
-
   if (sortMode === "difficulty") {
     arr.sort((a, b) => (b.avg || 0) - (a.avg || 0));
   } else {
-    // 年度降順 → 問題番号昇順
     arr.sort((a, b) => {
-      const d = String(b.date || "").localeCompare(String(a.date || ""));
+      const d = String(b.date).localeCompare(String(a.date));
       if (d !== 0) return d;
       return (a.no || 0) - (b.no || 0);
     });
@@ -37,7 +34,6 @@ function sortPosts(list) {
   return arr;
 }
 
-/* ---------- render one card ---------- */
 async function renderOne(p) {
   const ratedKey = `rated_${p.id}`;
   const alreadyRated = localStorage.getItem(ratedKey);
@@ -45,25 +41,17 @@ async function renderOne(p) {
   const card = buildCard(p, alreadyRated);
   const texEl = card.querySelector(".tex");
 
-  // 本文ロード（未ロードならロード）
-  try {
-    await ensureBodyLoaded(p);
-  } catch (e) {
-    console.warn("本文ロード失敗:", p?.tex, e);
-    // ここで落とすと表示が止まるので、最低限の文言を入れる
-    p.body = p.body || "（本文の読み込みに失敗しました）";
-  }
+  // 本文未ロードならロード
+  await ensureBodyLoaded(p);
 
-  // 本文をDOMへ（render.js側で escape/QNUM などやってる想定ならそっちで）
-  // ここでは最小：render.jsに「texへ本文を流し込む関数」が無い前提なので直接
-  texEl.innerHTML = p.renderedHtml || p.bodyHtml || p.body || "";
+  texEl.innerHTML = p.html; // ensureBodyLoaded が html を用意する前提（posts.js側）
 
-  // 平均表示色
+  // 平均難易度の色
   const avgDiv = card.querySelector("[data-avg]");
   applyAvgClass(avgDiv, p.avg);
 
-  // レーティングボタン配線（Firestore送信 + localStorage など）
-  wireRatingButtons({ card, p, ratedKey });
+  // 評価ボタン
+  wireRatingButtons({ card, p, ratedKey, alreadyRated });
 
   timeline.appendChild(card);
 
@@ -78,15 +66,12 @@ async function renderOne(p) {
   }
 }
 
-/* ---------- paging ---------- */
 async function renderNextPage() {
   if (isLoading) return;
   isLoading = true;
 
   const next = currentList.slice(rendered, rendered + PAGE_SIZE);
-  for (const p of next) {
-    await renderOne(p);
-  }
+  for (const p of next) await renderOne(p);
   rendered += next.length;
 
   if (rendered >= currentList.length) {
@@ -106,10 +91,8 @@ function resetList(newList) {
 
   if (observer) observer.disconnect();
   observer = new IntersectionObserver(
-    async (entries) => {
-      if (entries.some((e) => e.isIntersecting)) {
-        await renderNextPage();
-      }
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) renderNextPage();
     },
     { rootMargin: "600px" }
   );
@@ -118,77 +101,67 @@ function resetList(newList) {
   renderNextPage();
 }
 
-/* ---------- main ---------- */
 async function main() {
-  // UI
-  const { toolbar, searchInput, sortToggle, clearBtn } = buildToolbar();
-  timeline.before(toolbar);
-
-  // header高さ同期
+  // ヘッダー高さ同期
   syncHeaderHeight();
   window.addEventListener("resize", syncHeaderHeight);
 
   // posts index
-  let posts = [];
+  let posts;
   try {
     posts = await loadPostIndex();
   } catch (e) {
     console.error(e);
-    showNote(
-      `❌ posts_index.json の読み込みに失敗しました。<div class="muted">${String(e.message || e)}</div>`
-    );
+    showNote(timeline, `❌ posts_index.json の読み込みに失敗しました。<div class="muted">${String(e.message || e)}</div>`);
     return;
   }
 
   if (!posts.length) {
     showNote(
-      "⚠️ posts/ に対象ファイルが見つかりません。<div class='muted'>ファイル名は <b>2025_6.tex</b> のように <b>YYYY_N.tex</b> 形式にしてください。</div>"
+      timeline,
+      "⚠️ posts が空です。<div class='muted'>posts_index.json を確認してください。</div>"
     );
     return;
   }
 
   // ratings
-  const ratingMap = await loadRatings();
+  const ratingMap = await loadRatings({ onWarn: (html) => showNote(timeline, html) });
 
-  // enrich
   const enriched = posts.map((p) => {
     const scores = ratingMap[p.id] ?? [];
     const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    return { ...p, avg, count: scores.length };
+    return { ...p, avg, count: scores.length, body: p.body || "", html: p.html || "" };
+  });
+
+  // 検索ランナー（search.js）
+  const runSearch = createSearchRunner({
+    getAll: () => enriched,
+    normalizeQuery,
+    ensureBodyLoaded,
+  });
+
+  // toolbar（検索欄を復活させる本体）
+  const { sortBtn, searchInput } = buildToolbar(timeline, {
+    onInput: async () => {
+      const q = normalizeQuery(searchInput.value);
+      if (!q) {
+        resetList(sortPosts(enriched));
+        return;
+      }
+      const result = await runSearch(q);
+      resetList(sortPosts(result));
+    },
+    onSortToggle: () => {
+      sortMode = sortMode === "year" ? "difficulty" : "year";
+      sortBtn.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
+      resetList(sortPosts(currentList));
+    },
   });
 
   // 初期表示
   resetList(sortPosts(enriched));
 
-  // sort toggle
-  sortToggle.onclick = () => {
-    sortMode = sortMode === "year" ? "difficulty" : "year";
-    sortToggle.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
-    resetList(sortPosts(currentList));
-  };
-
-  // clear
-  clearBtn.onclick = () => {
-    searchInput.value = "";
-    searchInput.dispatchEvent(new Event("input"));
-  };
-
-  // search (遅い/出ない対策：ensureBodyLoaded を search.js が内部で使う)
-  let searchSeq = 0;
-
-  const runSearch = createSearchRunner({
-    enriched,
-    sortPosts,
-    resetList,
-    getSearchSeq: () => searchSeq,
-  });
-
-  searchInput.addEventListener("input", async () => {
-    const mySeq = ++searchSeq;
-    await runSearch(searchInput.value, mySeq);
-  });
-
-  // header高さ再同期（フォントロード等のズレ対策）
+  // フォント等でズレる対策
   requestAnimationFrame(syncHeaderHeight);
   setTimeout(syncHeaderHeight, 300);
   setTimeout(syncHeaderHeight, 1200);

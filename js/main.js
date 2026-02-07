@@ -1,9 +1,10 @@
 // js/main.js
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1728";
-import { loadRatings } from "./firebase.js?v=20260207_1728";
-import { normalizeQuery, latexBodyToSafeHTML } from "./latex.js?v=20260207_1728";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1728";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1728";
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
+import { loadRatings } from "./firebase.js";
+import { latexBodyToSafeHTML } from "./latex.js";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
+import { createSearchRunner } from "./search.js";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -16,9 +17,15 @@ let rendered = 0;
 let isLoading = false;
 let observer = null;
 
+// 検索の中断制御用
+let searchSeq = 0;
+
 const sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
+/* ===============================
+   並び替え
+================================ */
 function sortPosts(list) {
   const arr = list.slice();
   if (sortMode === "difficulty") {
@@ -33,7 +40,12 @@ function sortPosts(list) {
   return arr;
 }
 
+/* ===============================
+   描画
+================================ */
 async function renderOne(p) {
+  if (!p) return;
+
   const ratedKey = "rated_" + p.id;
   const alreadyRated = localStorage.getItem(ratedKey);
 
@@ -55,7 +67,9 @@ async function renderOne(p) {
   timeline.appendChild(card);
 
   if (window.MathJax) {
-    await MathJax.typesetPromise([texEl]);
+    try {
+      await MathJax.typesetPromise([texEl]);
+    } catch {}
   }
 }
 
@@ -84,7 +98,9 @@ function resetList(list) {
   if (observer) observer.disconnect();
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((e) => e.isIntersecting)) renderNextPage();
+      if (entries.some((e) => e.isIntersecting)) {
+        renderNextPage();
+      }
     },
     { rootMargin: "800px" }
   );
@@ -93,6 +109,9 @@ function resetList(list) {
   renderNextPage();
 }
 
+/* ===============================
+   debounce
+================================ */
 function debounce(fn, ms) {
   let t = null;
   return (...args) => {
@@ -101,12 +120,21 @@ function debounce(fn, ms) {
   };
 }
 
+/* ===============================
+   main
+================================ */
 async function main() {
   let posts;
   try {
     posts = await loadPostIndex();
-  } catch {
-    showNote(timeline, "posts_index.json の読み込みに失敗しました");
+  } catch (e) {
+    console.error(e);
+    showNote(timeline, "❌ posts_index.json の読み込みに失敗しました");
+    return;
+  }
+
+  if (!posts.length) {
+    showNote(timeline, "⚠️ 問題データがありません");
     return;
   }
 
@@ -116,38 +144,43 @@ async function main() {
     .filter((p) => p && p.id && p.tex)
     .map((p) => {
       const scores = ratingMap[p.id] || [];
-      const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      const avg = scores.length
+        ? scores.reduce((a, b) => a + b, 0) / scores.length
+        : 0;
       return { ...p, avg, count: scores.length };
     });
 
+  // UI（検索バー・並び替え）
   const ui = buildToolbar({
     timeline,
     onSortToggle: (btn) => {
       sortMode = sortMode === "year" ? "difficulty" : "year";
-      btn.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
+      btn.textContent =
+        sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
       resetList(sortPosts(currentList));
     },
   });
 
+  // 初期表示
   resetList(sortPosts(enriched));
 
+  /* ===============================
+     🔍 検索（search.js を使用）
+     ★ ここが超重要
+================================ */
+  const runner = createSearchRunner({
+    enriched,
+    sortPosts,
+    resetList,
+    getSearchSeq: () => searchSeq,
+  });
+
   const runSearch = debounce(async () => {
-    const q = normalizeQuery(ui.searchInput.value);
-    if (!q) {
-      resetList(sortPosts(enriched));
-      return;
-    }
+    const mySeq = ++searchSeq;
 
-    const metaMatched = enriched.filter((p) => {
-      const meta =
-        String(p.date || "") + " " +
-        String(p.no || "") + " " +
-        String(p.source || "") + " " +
-        String(p.id || "");
-      return meta.includes(q);
-    });
-
-    resetList(sortPosts(metaMatched));
+    // ★ normalize しない！
+    // カンマ分割・LaTeX正規化は search.js 側でやる
+    await runner(ui.searchInput.value, mySeq);
   }, 200);
 
   ui.searchInput.addEventListener("input", runSearch);

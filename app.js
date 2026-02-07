@@ -7,6 +7,75 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+
+
+
+async function fetchTextWithEncoding(url, encoding = "auto") {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+
+  const enc = String(encoding || "auto").toLowerCase();
+
+  // Shift_JIS 変換（encoding-japanese）
+  const decodeSJIS = () => {
+    if (!window.Encoding) {
+      throw new Error("encoding-japanese が読み込まれていません（index.htmlを確認）");
+    }
+    return window.Encoding.convert(bytes, {
+      to: "UNICODE",
+      from: "CP932",
+      type: "string",
+    });
+  };
+
+  // UTF-8 変換（厳格：壊れてたら例外にする）
+  const decodeUTF8Strict = () => {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  };
+
+  // 1) 明示指定があるならそれを優先
+  if (enc === "utf-8" || enc === "utf8") {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+  if (enc === "shift_jis" || enc === "shift-jis" || enc === "sjis") {
+    return decodeSJIS();
+  }
+
+  // 2) auto: UTF-8 をまず「厳格」に試す → 失敗したら SJIS
+  if (enc === "auto") {
+    try {
+      const s = decodeUTF8Strict();
+      return s; // UTF-8として正しい
+    } catch {
+      // UTF-8として壊れている → SJISで読む
+      return decodeSJIS();
+    }
+  }
+
+  // 3) その他（最後に TextDecoder を試す / ダメならUTF-8）
+  try {
+    return new TextDecoder(enc).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ---------- Firebase ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
@@ -75,58 +144,6 @@ function showNote(html) {
 
 /* ---------- util: encoding付き fetch ---------- */
 /* ---------- util: encoding付き fetch（auto対応） ---------- */
-async function fetchTextWithEncoding(url, encoding = "auto") {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
-
-  const buf = await res.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-
-  const enc = String(encoding || "auto").toLowerCase();
-
-  // Shift_JIS 変換（encoding-japanese）
-  const decodeSJIS = () => {
-    if (!window.Encoding) {
-      throw new Error("encoding-japanese が読み込まれていません（index.htmlを確認）");
-    }
-    return window.Encoding.convert(bytes, {
-      to: "UNICODE",
-      from: "CP932",
-      type: "string",
-    });
-  };
-
-  // UTF-8 変換（厳格：壊れてたら例外にする）
-  const decodeUTF8Strict = () => {
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  };
-
-  // 1) 明示指定があるならそれを優先
-  if (enc === "utf-8" || enc === "utf8") {
-    return new TextDecoder("utf-8").decode(bytes);
-  }
-  if (enc === "shift_jis" || enc === "shift-jis" || enc === "sjis") {
-    return decodeSJIS();
-  }
-
-  // 2) auto: UTF-8 をまず「厳格」に試す → 失敗したら SJIS
-  if (enc === "auto") {
-    try {
-      const s = decodeUTF8Strict();
-      return s; // UTF-8として正しい
-    } catch {
-      // UTF-8として壊れている → SJISで読む
-      return decodeSJIS();
-    }
-  }
-
-  // 3) その他（最後に TextDecoder を試す / ダメならUTF-8）
-  try {
-    return new TextDecoder(enc).decode(bytes);
-  } catch {
-    return new TextDecoder("utf-8").decode(bytes);
-  }
-}
 
 
 
@@ -144,7 +161,7 @@ function guessEncoding(path) {
     "posts/05_nagoya/",
     "posts/06_osaka/",
     "posts/07_kyushu/",
-    "posts/08_itech/"
+    "posts/08_titech/"
   ];
 
   if (sjisPrefixes.some((prefix) => p.startsWith(prefix))) return "shift_jis";

@@ -7,7 +7,7 @@ async function fetchTextWithSJIS(url) {
 }
 
 async function loadPosts() {
-  const res = await fetch("posts.json");
+  const res = await fetch("posts_index.json");
   const posts = await res.json();
 
   const container = document.getElementById("posts");

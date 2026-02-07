@@ -87,6 +87,27 @@ async function fetchTextWithEncoding(url, encoding = "utf-8") {
   }
 }
 
+/* ---------- util: pathから文字コードを推測 ---------- */
+function guessEncoding(path) {
+  const p = String(path || "");
+
+  // 旧問は Shift_JIS が多い（必要なら増減OK）
+  const sjisPrefixes = [
+    "posts/01_tokyo/",
+    "posts/02_kyoto/",
+    "posts/03_hokudai/",
+    "posts/04_tohoku/",
+    "posts/05_nagoya/",
+    "posts/06_osaka/",
+    "posts/07_kyushu/",
+    "posts/08_itech/"
+  ];
+
+  if (sjisPrefixes.some((prefix) => p.includes(prefix))) return "shift_jis";
+  return "utf-8";
+}
+
+
 /* ---------- util: HTML escape ---------- */
 function escapeHTML(s) {
   return (s ?? "")
@@ -321,7 +342,7 @@ async function renderOne(p) {
   const texEl = card.querySelector(".tex");
 
   if (!p.body) {
-    const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
+    const raw = await fetchTextWithEncoding(p.tex, p.encoding || guessEncoding(p.tex));
     p.body = normalizeLatexForMathJax(raw);
   }
 

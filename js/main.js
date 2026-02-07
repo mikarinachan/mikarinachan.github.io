@@ -3,8 +3,6 @@ import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
 import { loadRatings } from "./firebase.js";
 import { normalizeQuery, latexBodyToSafeHTML } from "./latex.js";
 import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
-
-// ★ render.js もキャッシュ破壊（ここ超重要）
 import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207";
 
 const timeline = document.getElementById("timeline");
@@ -21,8 +19,9 @@ let observer = null;
 const sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
+/* ---------- sort ---------- */
 function sortPosts(list) {
-  const arr = (list || []).slice();
+  const arr = list.slice();
   if (sortMode === "difficulty") {
     arr.sort((a, b) => (Number(b.avg) || 0) - (Number(a.avg) || 0));
   } else {
@@ -35,6 +34,7 @@ function sortPosts(list) {
   return arr;
 }
 
+/* ---------- render ---------- */
 async function renderOne(p) {
   if (!p) return;
 
@@ -46,9 +46,8 @@ async function renderOne(p) {
 
   try {
     await ensureBodyLoaded(p);
-  } catch (e) {
-    console.warn("本文ロード失敗:", p && p.tex, e);
-    p.body = p.body || "";
+  } catch {
+    p.body = "";
   }
 
   texEl.innerHTML = latexBodyToSafeHTML(p.body || "");
@@ -57,16 +56,10 @@ async function renderOne(p) {
   applyAvgClass(avgDiv, p.avg);
 
   await wireRatingButtons({ card, p });
-
   timeline.appendChild(card);
 
   if (window.MathJax) {
-    try {
-      await MathJax.startup.promise;
-      await MathJax.typesetPromise([texEl]);
-    } catch (e) {
-      console.warn("MathJax typeset failed:", e);
-    }
+    await MathJax.typesetPromise([texEl]);
   }
 }
 
@@ -75,21 +68,18 @@ async function renderNextPage() {
   isLoading = true;
 
   const next = currentList.slice(rendered, rendered + PAGE_SIZE);
-  for (let i = 0; i < next.length; i++) {
-    await renderOne(next[i]);
-  }
+  for (const p of next) await renderOne(p);
   rendered += next.length;
 
   if (rendered >= currentList.length) {
     sentinel.remove();
     if (observer) observer.disconnect();
   }
-
   isLoading = false;
 }
 
-function resetList(newList) {
-  currentList = (newList || []).filter(Boolean);
+function resetList(list) {
+  currentList = list;
   rendered = 0;
 
   timeline.innerHTML = "";
@@ -97,23 +87,19 @@ function resetList(newList) {
 
   if (observer) observer.disconnect();
   observer = new IntersectionObserver(
-    async (entries) => {
-      for (let i = 0; i < entries.length; i++) {
-        if (entries[i].isIntersecting) {
-          await renderNextPage();
-          break;
-        }
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        renderNextPage();
       }
     },
     { rootMargin: "800px" }
   );
-
   observer.observe(sentinel);
+
   renderNextPage();
 }
 
-// ---- 検索（debounce + 中断 + 並列ロード） ----
-let searchSeq = 0;
+/* ---------- debounce ---------- */
 function debounce(fn, ms) {
   let t = null;
   return (...args) => {
@@ -122,18 +108,13 @@ function debounce(fn, ms) {
   };
 }
 
+/* ---------- main ---------- */
 async function main() {
-  let posts = [];
+  let posts;
   try {
     posts = await loadPostIndex();
   } catch (e) {
-    console.error(e);
-    showNote(timeline, "❌ posts_index.json の読み込みに失敗しました。Console を確認してください。");
-    return;
-  }
-
-  if (!posts || !posts.length) {
-    showNote(timeline, "⚠️ posts_index.json が空です。");
+    showNote(timeline, "posts_index.json の読み込みに失敗しました");
     return;
   }
 
@@ -143,83 +124,49 @@ async function main() {
     .filter((p) => p && p.id && p.tex)
     .map((p) => {
       const scores = ratingMap[p.id] || [];
-      const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      const avg = scores.length
+        ? scores.reduce((a, b) => a + b, 0) / scores.length
+        : 0;
       return { ...p, avg, count: scores.length };
     });
 
   const ui = buildToolbar({
     timeline,
     onSortToggle: (btn) => {
-      sortMode = (sortMode === "year") ? "difficulty" : "year";
-      btn.textContent = (sortMode === "year") ? "並び順：年度順" : "並び順：難易度順";
+      sortMode = sortMode === "year" ? "difficulty" : "year";
+      btn.textContent =
+        sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
       resetList(sortPosts(currentList));
     },
   });
 
-  // 初期表示
   resetList(sortPosts(enriched));
 
   const runSearch = debounce(async () => {
-    const mySeq = ++searchSeq;
     const q = normalizeQuery(ui.searchInput.value);
-
     if (!q) {
       resetList(sortPosts(enriched));
       return;
     }
 
-    // メタ（軽い）
     const metaMatched = enriched.filter((p) => {
-      const meta = normalizeQuery(String(p.date || "") + " " + String(p.no || "") + " " + String(p.source || "") + " " + String(p.id || ""));
-      return meta.indexOf(q) !== -1;
+      const meta =
+        String(p.date || "") +
+        " " +
+        String(p.no || "") +
+        " " +
+        String(p.source || "") +
+        " " +
+        String(p.id || "");
+      return meta.includes(q);
     });
 
-    // 本文（重い）※失敗しても止めない
-    const bodyMatched = [];
-    const CONCURRENCY = 6;
-    let idx = 0;
-
-    async function worker() {
-      while (idx < enriched.length) {
-        const p = enriched[idx++];
-        if (mySeq !== searchSeq) return;
-
-        try {
-          await ensureBodyLoaded(p);
-        } catch (e) {
-          continue;
-        }
-        if (mySeq !== searchSeq) return;
-
-        if (normalizeQuery(p.body || "").indexOf(q) !== -1) bodyMatched.push(p);
-      }
-    }
-
-    const jobs = [];
-    for (let i = 0; i < CONCURRENCY; i++) jobs.push(worker());
-    await Promise.all(jobs);
-
-    if (mySeq !== searchSeq) return;
-
-    // マージ（重複排除）
-    const merged = [];
-    const seen = new Set();
-    const all = metaMatched.concat(bodyMatched);
-    for (let i = 0; i < all.length; i++) {
-      const p = all[i];
-      if (!p || seen.has(p.id)) continue;
-      seen.add(p.id);
-      merged.push(p);
-    }
-
-    resetList(sortPosts(merged));
+    resetList(sortPosts(metaMatched));
   }, 200);
 
   ui.searchInput.addEventListener("input", runSearch);
 
   requestAnimationFrame(syncHeaderHeight);
-  setTimeout(syncHeaderHeight, 300);
-  setTimeout(syncHeaderHeight, 1200);
 }
 
 main();

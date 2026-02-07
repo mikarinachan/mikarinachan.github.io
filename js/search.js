@@ -1,5 +1,5 @@
 // js/search.js
-console.log("SEARCH FAST");
+console.log("SEARCH CANDIDATE");
 
 import { ensureBodyLoaded } from "./posts.js";
 
@@ -23,7 +23,7 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     return UNIVERSITY_NAME_MAP[key] || source;
   }
 
-  // ✅ 日本語を消さない正規化（軽量）
+  // 日本語を消さない正規化（LaTeXゆれ対応）
   function norm(s) {
     if (s == null) return "";
     let t = String(s).normalize("NFKC").toLowerCase();
@@ -52,6 +52,7 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     const uniKey = String(p.source || "").toLowerCase();
     const uniJa = displayUniversityName(p.source);
 
+    // tokyo / 東京大学 どっちでも当たるように両方入れる
     const raw =
       `${p.date || ""} ${year} ${p.no || ""} ${p.id || ""} ` +
       `${uniKey} ${uniJa}`;
@@ -59,64 +60,65 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     return norm(raw);
   }
 
-  // ✅ 「本文検索が必要か？」を判定（年・大学だけなら本文不要で爆速）
-  function needsBodySearch(terms) {
-    return terms.some((t) => {
-      if (/^\d{4}$/.test(t)) return false;            // 年
-      if (t.includes("大学")) return false;           // 大学名（日本語）
-      if (UNIVERSITY_NAME_MAP[t]) return false;       // tokyo/titech 等
-      // ↑以外は本文にある可能性が高い（n^2, integral, 文字列など）
-      return true;
-    });
+  // term が「メタで判定できるもの」か判定
+  function isMetaTerm(t) {
+    if (!t) return false;
+    if (/^\d{4}$/.test(t)) return true;        // 年
+    if (t.includes("大学")) return true;       // 日本語大学名
+    if (UNIVERSITY_NAME_MAP[t]) return true;   // tokyo/titech/...
+    return false;
   }
 
   return async function runSearch(inputValue, mySeq) {
     const terms = parseTerms(inputValue);
     console.log("SEARCH terms:", terms);
 
-    // 空なら全件
     if (terms.length === 0) {
       resetList(sortPosts(enriched));
-      console.log("SEARCH reset(all)");
       return;
     }
 
-    // ① メタ一致は即反映（ここが重要）
-    const metaMatched = enriched.filter((p) => {
-      const meta = metaText(p);
-      return terms.every((t) => meta.includes(t));
-    });
+    // ① メタ条件と本文条件に分離
+    const metaTerms = terms.filter(isMetaTerm);
+    const bodyTerms = terms.filter((t) => !isMetaTerm(t));
 
-    resetList(sortPosts(metaMatched));
-    console.log("SEARCH reset(meta):", metaMatched.length);
+    // ② メタ条件で候補を絞る（ここが超重要）
+    const candidates = metaTerms.length
+      ? enriched.filter((p) => {
+          const meta = metaText(p);
+          return metaTerms.every((t) => meta.includes(t));
+        })
+      : enriched.slice();
 
-    // 入力が更新されたらここで終了（古い検索を反映しない）
-    if (mySeq !== getSearchSeq()) return;
+    // メタだけの検索なら即反映（速い）
+    if (bodyTerms.length === 0) {
+      resetList(sortPosts(candidates));
+      return;
+    }
 
-    // ② 本文検索が不要なら終わり（年/大学だけならこれで十分）
-    if (!needsBodySearch(terms)) return;
-
-    // ③ 本文込みで追加ヒットを探す（重いので後回し）
-    const bodyMatched = [];
+    // ③ 本文条件がある場合：
+    //    ここで 0件に即リセットしない（真っ白回避）
+    //    候補が小さいなら一瞬で終わるので、最終結果だけ反映する
+    const matched = [];
     let i = 0;
 
     const worker = async () => {
-      while (i < enriched.length) {
-        const p = enriched[i++];
+      while (i < candidates.length) {
+        const p = candidates[i++];
 
         if (mySeq !== getSearchSeq()) return;
 
         try {
           await ensureBodyLoaded(p);
-        } catch (e) {
-          // 読めないものはスキップ
+        } catch {
+          // 失敗はスキップ
         }
 
         if (mySeq !== getSearchSeq()) return;
 
         const combined = metaText(p) + norm(p.body || "");
-        if (terms.every((t) => combined.includes(t))) {
-          bodyMatched.push(p);
+        if (bodyTerms.every((t) => combined.includes(t))) {
+          matched.push(p);
         }
       }
     };
@@ -124,16 +126,6 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
     if (mySeq !== getSearchSeq()) return;
 
-    // ④ メタ＋本文をマージして再反映
-    const merged = [];
-    const seen = new Set();
-    for (const p of [...metaMatched, ...bodyMatched]) {
-      if (!p || seen.has(p.id)) continue;
-      seen.add(p.id);
-      merged.push(p);
-    }
-
-    resetList(sortPosts(merged));
-    console.log("SEARCH reset(merged):", merged.length);
+    resetList(sortPosts(matched));
   };
 }

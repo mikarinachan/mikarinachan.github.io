@@ -1,10 +1,8 @@
-// js/render.js
+// render.js
 import { escapeHTML } from "./latex.js";
 import { submitRating } from "./firebase.js";
 
-/* ===============================
-   表示用 大学名マップ（最速修正）
-================================ */
+/* 表示用 大学名マップ */
 const UNIVERSITY_NAME_MAP = {
   titech: "東京科学大学",
   tokyo: "東京大学",
@@ -21,13 +19,12 @@ function displayUniversityName(source) {
   const key = String(source).toLowerCase();
   return UNIVERSITY_NAME_MAP[key] ?? source;
 }
-/* =============================== */
 
 export function buildTags(p) {
   const tags = [];
-  if (p?.date) tags.push(p.date);
+  if (p && p.date) tags.push(p.date);
 
-  if (p?.source) {
+  if (p && p.source) {
     const parts = String(p.source)
       .replace(/[｜|・]/g, " ")
       .split(/\s+/)
@@ -35,7 +32,7 @@ export function buildTags(p) {
     for (const t of parts.slice(0, 4)) tags.push(t);
   }
 
-  if (p?.no) tags.push(`第${p.no}問`);
+  if (p && p.no) tags.push("第" + p.no + "問");
   return Array.from(new Set(tags)).slice(0, 6);
 }
 
@@ -55,20 +52,24 @@ export function buildCard(p, alreadyRated) {
     .map((t) => '<span class="tag">' + escapeHTML(t) + "</span>")
     .join("");
 
-  const uni = escapeHTML(displayUniversityName(p?.source));
-  const year = escapeHTML(p?.date ?? "");
-  const qnum = p?.no ? String(p.no) : "";
+  const uni = escapeHTML(displayUniversityName(p && p.source));
+  const year = escapeHTML((p && p.date) ? p.date : "");
+  const qnum = (p && p.no) ? String(p.no) : "";
 
   const headRight = qnum ? '<div class="qnum">第' + escapeHTML(qnum) + "問</div>" : "";
-  const explainHtml = p?.explain ? '<div class="explain">解説：' + escapeHTML(p.explain) + "</div>" : "";
-  const answerHtml = p?.answer
-    ? '<div class="answer"><a href="' +
-      p.answer +
-      '" target="_blank" rel="noopener">▶ 模範解答を見る</a></div>'
-    : "";
 
-  const avgText = p?.count ? Number(p.avg).toFixed(2) : "未評価";
-  const countText = p?.count ? "（" + p.count + "人）" : "";
+  const explainHtml =
+    p && p.explain ? '<div class="explain">解説：' + escapeHTML(p.explain) + "</div>" : "";
+
+  const answerHtml =
+    p && p.answer
+      ? '<div class="answer"><a href="' +
+        p.answer +
+        '" target="_blank" rel="noopener">▶ 模範解答を見る</a></div>'
+      : "";
+
+  const avgText = p && p.count ? Number(p.avg).toFixed(2) : "未評価";
+  const countText = p && p.count ? "（" + p.count + "人）" : "";
 
   const ratingButtonsHtml = [1,2,3,4,5,6,7,8,9,10]
     .map((n) => {
@@ -79,46 +80,36 @@ export function buildCard(p, alreadyRated) {
 
   div.innerHTML =
     '<div class="problem-head">' +
-      '<div class="problem-info">' +
-        uni + (year ? " " + year + "年度" : "") +
-      "</div>" +
+      '<div class="problem-info">' + uni + (year ? " " + year + "年度" : "") + "</div>" +
       headRight +
     "</div>" +
-
     '<div class="tags">' + tagsHtml + "</div>" +
-
     '<div class="content"><div class="tex"></div></div>' +
-
     explainHtml +
     answerHtml +
-
     '<div class="avg" data-avg>' +
       "<span>平均難易度：</span>" +
       '<span class="avg-badge"><b>' + avgText + "</b>" + countText + "</span>" +
     "</div>" +
-
     '<div class="rating">' + ratingButtonsHtml + "</div>";
 
   return div;
 }
 
-/**
- * 呼び方を両対応にする：
- *   wireRatingButtons({card, p})
- *   wireRatingButtons(card, p)
- */
+/** 呼び方を両対応にする */
 export async function wireRatingButtons(arg1, arg2) {
   let card, p;
   if (arg1 && typeof arg1 === "object" && arg1.card) {
-    ({ card, p } = arg1);
+    card = arg1.card;
+    p = arg1.p;
   } else {
     card = arg1;
     p = arg2;
   }
 
-  if (!card || !p?.id) return;
+  if (!card || !(p && p.id)) return;
 
-  const ratedKey = `rated_${p.id}`;
+  const ratedKey = "rated_" + p.id;
   const avgDiv = card.querySelector("[data-avg]");
 
   card.querySelectorAll("button[data-score]").forEach((btn) => {

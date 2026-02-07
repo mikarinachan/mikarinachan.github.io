@@ -1,3 +1,4 @@
+// /js/ui.js
 
 export function syncHeaderHeight() {
   const h = document.querySelector("header")?.offsetHeight || 72;
@@ -11,7 +12,9 @@ export function showNote(timeline, html) {
   timeline.prepend(div);
 }
 
-export function buildToolbar(timeline) {
+export function buildToolbar(timeline, { onInput, onClear, onSortToggle }) {
+  if (!timeline) throw new Error("buildToolbar: timeline が渡されていません");
+
   const toolbar = document.createElement("div");
   toolbar.className = "toolbar";
 
@@ -26,20 +29,25 @@ export function buildToolbar(timeline) {
   const clearBtn = document.createElement("button");
   clearBtn.textContent = "クリア";
 
-  const sortToggle = document.createElement("button");
-  sortToggle.textContent = "並び順：年度順";
+  const sortBtn = document.createElement("button");
+  sortBtn.textContent = "並び順：年度順";
 
   inner.appendChild(searchInput);
   inner.appendChild(clearBtn);
-  inner.appendChild(sortToggle);
+  inner.appendChild(sortBtn);
   toolbar.appendChild(inner);
 
+  // timeline の直前に差し込む
   timeline.before(toolbar);
 
-  clearBtn.onclick = () => {
+  // イベント
+  if (onInput) searchInput.addEventListener("input", onInput);
+  clearBtn.addEventListener("click", () => {
     searchInput.value = "";
     searchInput.dispatchEvent(new Event("input"));
-  };
+    if (onClear) onClear();
+  });
+  if (onSortToggle) sortBtn.addEventListener("click", onSortToggle);
 
-  return { searchInput, sortToggle };
+  return { toolbar, searchInput, clearBtn, sortBtn };
 }

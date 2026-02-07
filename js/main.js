@@ -39,32 +39,36 @@ async function renderOne(p) {
 
   const card = buildCard(p, alreadyRated);
   const texEl = card.querySelector(".tex");
-
-  if (!p.body) {
-    try {
-      await ensureBodyLoaded(p);
-    } catch (e) {
-      console.warn("本文ロード失敗:", p.tex, e);
-      p.body = "（本文の読み込みに失敗しました）";
-    }
+  if (!texEl) {
+    console.warn("buildCard 内に .tex が無い", card);
+    return;
   }
 
-  // QNUMだけ許可HTML
-  let s = (p.body ?? "").replace(/\[\[QNUM:(\d+)\]\]/g, "%%QNUM:$1%%");
-  s = s
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  s = s.replace(/%%QNUM:(\d+)%%/g, '<span class="qnum">$1</span>');
+  // 本文ロード（例外で全体が止まらないように）
+  try {
+    await ensureBodyLoaded(p);
+  } catch (e) {
+    console.warn("本文ロード失敗:", p.tex, e);
+    p.body = "（本文の読み込みに失敗しました）";
+  }
 
-  texEl.innerHTML = s;
+  // buildCard が p.body を埋めてない想定なので、ここで反映
+  texEl.innerHTML = p.bodyHTML || p.body || "";
 
+  // avg色
   const avgDiv = card.querySelector("[data-avg]");
-  applyAvgClass(avgDiv, p.avg);
+  if (avgDiv) applyAvgClass(avgDiv, p.avg);
 
-  await wireRatingButtons({ card, p });
+  // 評価ボタン
+  try {
+    wireRatingButtons(card, p, ratedKey);
+  } catch (e) {
+    console.warn("wireRatingButtons 失敗:", e);
+  }
 
   timeline.appendChild(card);
 
+  // MathJax
   if (window.MathJax) {
     try {
       await MathJax.startup.promise;
@@ -80,12 +84,14 @@ async function renderNextPage() {
   isLoading = true;
 
   const next = currentList.slice(rendered, rendered + PAGE_SIZE);
-  for (const p of next) await renderOne(p);
+  for (const p of next) {
+    await renderOne(p);
+  }
   rendered += next.length;
 
   if (rendered >= currentList.length) {
     sentinel.remove();
-    observer?.disconnect();
+    if (observer) observer.disconnect();
   }
 
   isLoading = false;
@@ -98,10 +104,12 @@ function resetList(newList) {
   timeline.innerHTML = "";
   timeline.appendChild(sentinel);
 
-  observer?.disconnect();
+  if (observer) observer.disconnect();
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((e) => e.isIntersecting)) renderNextPage();
+      if (entries.some((e) => e.isIntersecting)) {
+        renderNextPage();
+      }
     },
     { rootMargin: "600px" }
   );
@@ -111,32 +119,29 @@ function resetList(newList) {
 }
 
 async function main() {
-  const { searchInput, sortToggle } = buildToolbar(timeline);
+  // toolbar
+  const { toolbar, searchInput, clearBtn, sortToggle } = buildToolbar();
+  timeline.before(toolbar);
 
-  window.addEventListener("resize", syncHeaderHeight);
   syncHeaderHeight();
+  window.addEventListener("resize", syncHeaderHeight);
 
   let posts = [];
   try {
     posts = await loadPostIndex();
   } catch (e) {
     console.error(e);
-    showNote(timeline, `❌ posts_index.json の取得に失敗：<div class="muted">${String(e.message || e)}</div>`);
+    showNote(`❌ posts_index.json の読み込みに失敗しました<br><div class="muted">${String(e.message || e)}</div>`);
     return;
   }
 
   if (!posts.length) {
-    showNote(timeline, "⚠️ posts が空です。posts_index.json を確認してください。");
+    showNote("⚠️ posts が空です（posts_index.json を確認）");
     return;
   }
 
-  let ratingMap = {};
-  try {
-    ratingMap = await loadRatings();
-  } catch (e) {
-    console.warn(e);
-    showNote(timeline, "⚠️ 難易度データ（Firestore）が読み取れませんでした。表示は続行します。");
-  }
+  // ratings
+  const ratingMap = await loadRatings();
 
   const enriched = posts.map((p) => {
     const scores = ratingMap[p.id] ?? [];
@@ -146,25 +151,33 @@ async function main() {
 
   resetList(sortPosts(enriched));
 
+  // sort toggle
   sortToggle.onclick = () => {
     sortMode = sortMode === "year" ? "difficulty" : "year";
     sortToggle.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
     resetList(sortPosts(currentList));
   };
 
-  const runSearch = createSearchRunner({ concurrency: 6 });
-  let timer = null;
-
-  searchInput.addEventListener("input", () => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => {
-      runSearch(enriched, searchInput.value, (list) => resetList(sortPosts(list)));
-    }, 150);
+  // search
+  const runSearch = createSearchRunner({
+    normalizeQuery,
+    ensureBodyLoaded,
+    sortPosts,
+    resetList,
   });
+
+  searchInput.addEventListener("input", () => runSearch(enriched, searchInput.value));
+  clearBtn.onclick = () => {
+    searchInput.value = "";
+    searchInput.dispatchEvent(new Event("input"));
+  };
 
   requestAnimationFrame(syncHeaderHeight);
   setTimeout(syncHeaderHeight, 300);
   setTimeout(syncHeaderHeight, 1200);
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  showNote(`❌ 初期化でエラー<br><div class="muted">${String(e.message || e)}</div>`);
+});

@@ -34,7 +34,7 @@ function sortPosts(list) {
 }
 
 async function renderOne(p) {
-  if (!p) return; // ★ここ重要：undefinedが混じっても落とさない
+  if (!p) return;
 
   const ratedKey = `rated_${p.id}`;
   const alreadyRated = localStorage.getItem(ratedKey);
@@ -42,22 +42,23 @@ async function renderOne(p) {
   const card = buildCard(p, alreadyRated);
   const texEl = card.querySelector(".tex");
 
-  // 本文をロード（検索に引っかかったやつも含め）
-  await ensureBodyLoaded(p);
+  // 本文ロード（失敗しても画面全体を止めない）
+  try {
+    await ensureBodyLoaded(p);
+  } catch (e) {
+    console.warn("本文ロード失敗:", p?.tex, e);
+    p.body = p.body || "";
+  }
 
-  // 本文をDOMに入れる（MathJax用に安全なHTMLへ）
   texEl.innerHTML = latexBodyToSafeHTML(p.body || "");
 
-  // 難易度色
   const avgDiv = card.querySelector("[data-avg]");
   applyAvgClass(avgDiv, p.avg);
 
-  // 評価ボタン（ここで p undefined にならないように）
   await wireRatingButtons({ card, p });
 
   timeline.appendChild(card);
 
-  // 追加分だけMathJax
   if (window.MathJax) {
     try {
       await MathJax.startup.promise;
@@ -85,7 +86,7 @@ async function renderNextPage() {
 }
 
 function resetList(newList) {
-  currentList = newList.filter(Boolean); // ★undefined混入対策
+  currentList = (newList || []).filter(Boolean);
   rendered = 0;
 
   timeline.innerHTML = "";
@@ -105,7 +106,7 @@ function resetList(newList) {
   renderNextPage();
 }
 
-// ---- 検索（速くする：debounce + 中断 + 並列ロード） ----
+// ---- 検索（debounce + 中断 + 並列ロード） ----
 let searchSeq = 0;
 function debounce(fn, ms = 200) {
   let t = null;
@@ -152,6 +153,7 @@ async function main() {
     onSortToggle: (btn) => {
       sortMode = sortMode === "year" ? "difficulty" : "year";
       btn.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
+      // 何回押しても現在のリストを新しい基準で並び替える
       resetList(sortPosts(currentList));
     },
   });
@@ -159,7 +161,7 @@ async function main() {
   // 初期表示
   resetList(sortPosts(enriched));
 
-  // 検索
+  // 検索：未ロード本文も対象（※1件失敗しても検索全体が止まらないようにする）
   const runSearch = debounce(async () => {
     const mySeq = ++searchSeq;
     const q = normalizeQuery(searchInput.value);
@@ -169,13 +171,11 @@ async function main() {
       return;
     }
 
-    // メタ一致（速い）
     const metaMatched = enriched.filter((p) => {
       const meta = normalizeQuery(`${p.date}_${p.no} ${p.source} ${p.id}`);
       return meta.includes(q);
     });
 
-    // 本文一致（未ロードは並列で少しずつロード）
     const bodyMatched = [];
     const CONCURRENCY = 6;
 
@@ -185,7 +185,16 @@ async function main() {
         const p = enriched[i++];
         if (mySeq !== searchSeq) return;
 
-        await ensureBodyLoaded(p); // キャッシュされる前提
+        // ★ここが修正点：本文ロード失敗が出ても検索を止めない（未ロードが検索できない原因になりがち）
+        try {
+          await ensureBodyLoaded(p);
+        } catch (e) {
+          console.warn("検索用本文ロード失敗:", p?.tex, e);
+          continue;
+        }
+
+        if (mySeq !== searchSeq) return;
+
         if (normalizeQuery(p.body || "").includes(q)) bodyMatched.push(p);
       }
     };
@@ -193,7 +202,6 @@ async function main() {
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
     if (mySeq !== searchSeq) return;
 
-    // マージ（重複排除）
     const merged = [];
     const seen = new Set();
     for (const p of [...metaMatched, ...bodyMatched]) {
@@ -207,7 +215,6 @@ async function main() {
 
   searchInput.addEventListener("input", runSearch);
 
-  // header高さズレ対策
   requestAnimationFrame(syncHeaderHeight);
   setTimeout(syncHeaderHeight, 300);
   setTimeout(syncHeaderHeight, 1200);

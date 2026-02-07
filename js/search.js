@@ -1,21 +1,18 @@
 // js/search.js
-import { normalizeQuery } from "./latex.js";
 import { ensureBodyLoaded } from "./posts.js";
 
 /**
- * 検索仕様（最終版）
- * - カンマ区切り AND 検索（, 、 ，）
- * - メタ + 本文をまとめて AND 判定
- * - 日本語は消さない（normalizeQueryを通さない）
- * - 英数・LaTeXは正規化（n^2 ⇔ n^{2}）
- * - 大学名：tokyo / 東京大学 両対応
+ * 最終検索エンジン
+ * - カンマ区切り AND（, 、 ，）
+ * - メタ + 本文 を結合して AND 判定（単語が分散してもOK）
+ * - 日本語を絶対に消さない（normalizeQuery に依存しない）
+ * - LaTeXゆれ吸収：n^2 ⇔ n^{2}、空白ゆれ
+ * - 大学名：tokyo / 東京大学 両方ヒット
  */
 export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSeq }) {
   const CONCURRENCY = 6;
 
-  /* =========================
-     大学名対応
-  ========================= */
+  // 表示名（render.js と合わせる）
   const UNIVERSITY_NAME_MAP = {
     titech: "東京科学大学",
     tokyo: "東京大学",
@@ -33,38 +30,33 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     return UNIVERSITY_NAME_MAP[key] || source;
   }
 
-  /* =========================
-     検索用正規化
-  ========================= */
-  function normalizeLatexForSearch(s) {
-    if (!s) return "";
+  /**
+   * ✅ 日本語を消さない正規化（自前）
+   * - NFKC（全角→半角など統一）
+   * - 英字は小文字化
+   * - 空白除去
+   * - LaTeXの ^{..} / _{..} を ^.. / _.. に
+   */
+  function norm(s) {
+    if (s == null) return "";
+    let t = String(s).normalize("NFKC").toLowerCase();
 
-    // 日本語を含むか判定
-    const hasJapanese = /[\u3040-\u30ff\u3400-\u9fff]/.test(s);
-
-    // 日本語を含む場合は normalizeQuery を通さない
-    let t = hasJapanese ? String(s) : normalizeQuery(String(s));
-
-    // LaTeX表記ゆれ吸収
+    // LaTeXゆれ
     t = t
-      // ^{2} -> ^2, _{k} -> _k
       .replace(/\^\{([^}]+)\}/g, "^$1")
       .replace(/_\{([^}]+)\}/g, "_$1")
-      // {n}, {12} など単独波括弧を除去
-      .replace(/\{([a-z0-9]+)\}/gi, "$1")
-      // 空白を除去（n ^ { 2 } も拾う）
-      .replace(/\s+/g, "");
+      .replace(/\{([a-z0-9]+)\}/gi, "$1");
+
+    // 空白は全部削除
+    t = t.replace(/\s+/g, "");
 
     return t;
   }
 
-  /* =========================
-     入力を AND 条件に分解
-  ========================= */
   function parseTerms(inputValue) {
     return String(inputValue || "")
       .split(/[,\u3001\uFF0C]/) // , 、 ，
-      .map((s) => normalizeLatexForSearch(s))
+      .map((x) => norm(x))
       .filter(Boolean);
   }
 
@@ -73,39 +65,35 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     return m ? m[1] : "";
   }
 
-  /* =========================
-     メタ情報文字列
-  ========================= */
   function metaText(p) {
     const year = extractYear(p.date);
+    const uniKey = String(p.source || "").toLowerCase();
     const uniJa = displayUniversityName(p.source);
 
-    const metaRaw =
-      `${p.date || ""} ${year} ${p.no || ""} ` +
-      `${p.source || ""} ${uniJa} ${p.id || ""}`;
+    // tokyo / 東京大学 どっちでも当たるように両方入れる
+    const raw =
+      `${p.date || ""} ${year} ${p.no || ""} ${p.id || ""} ` +
+      `${uniKey} ${uniJa}`;
 
-    return normalizeLatexForSearch(metaRaw);
+    return norm(raw);
   }
 
-  /* =========================
-     検索実行
-  ========================= */
   return async function runSearch(inputValue, mySeq) {
     const terms = parseTerms(inputValue);
 
-    // 空入力 → 全件
+    // 空なら全件
     if (terms.length === 0) {
       resetList(sortPosts(enriched));
       return;
     }
 
-    /* ---------- メタだけで AND 成立するもの ---------- */
+    // まずメタだけでAND成立するもの（速い）
     const quickMatched = enriched.filter((p) => {
       const meta = metaText(p);
       return terms.every((t) => meta.includes(t));
     });
 
-    /* ---------- 本文込みで AND 判定 ---------- */
+    // 本文込み（未ロードもロードして判定）
     const fullMatched = [];
     let i = 0;
 
@@ -123,9 +111,7 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
 
         if (mySeq !== getSearchSeq()) return;
 
-        const combined =
-          metaText(p) + normalizeLatexForSearch(p.body || "");
-
+        const combined = metaText(p) + norm(p.body || "");
         if (terms.every((t) => combined.includes(t))) {
           fullMatched.push(p);
         }
@@ -133,10 +119,9 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     };
 
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-
     if (mySeq !== getSearchSeq()) return;
 
-    /* ---------- マージ（重複除去） ---------- */
+    // マージ（重複除去）
     const merged = [];
     const seen = new Set();
     for (const p of [...quickMatched, ...fullMatched]) {

@@ -1,9 +1,9 @@
 // js/main.js
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
-import { loadRatings } from "./firebase.js";
-import { normalizeQuery, latexBodyToSafeHTML } from "./latex.js";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207";
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1728";
+import { loadRatings } from "./firebase.js?v=20260207_1728";
+import { normalizeQuery, latexBodyToSafeHTML } from "./latex.js?v=20260207_1728";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1728";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1728";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -19,7 +19,6 @@ let observer = null;
 const sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
-/* ---------- sort ---------- */
 function sortPosts(list) {
   const arr = list.slice();
   if (sortMode === "difficulty") {
@@ -34,10 +33,7 @@ function sortPosts(list) {
   return arr;
 }
 
-/* ---------- render ---------- */
 async function renderOne(p) {
-  if (!p) return;
-
   const ratedKey = "rated_" + p.id;
   const alreadyRated = localStorage.getItem(ratedKey);
 
@@ -88,9 +84,7 @@ function resetList(list) {
   if (observer) observer.disconnect();
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((e) => e.isIntersecting)) {
-        renderNextPage();
-      }
+      if (entries.some((e) => e.isIntersecting)) renderNextPage();
     },
     { rootMargin: "800px" }
   );
@@ -99,7 +93,6 @@ function resetList(list) {
   renderNextPage();
 }
 
-/* ---------- debounce ---------- */
 function debounce(fn, ms) {
   let t = null;
   return (...args) => {
@@ -108,12 +101,11 @@ function debounce(fn, ms) {
   };
 }
 
-/* ---------- main ---------- */
 async function main() {
   let posts;
   try {
     posts = await loadPostIndex();
-  } catch (e) {
+  } catch {
     showNote(timeline, "posts_index.json の読み込みに失敗しました");
     return;
   }
@@ -124,9 +116,7 @@ async function main() {
     .filter((p) => p && p.id && p.tex)
     .map((p) => {
       const scores = ratingMap[p.id] || [];
-      const avg = scores.length
-        ? scores.reduce((a, b) => a + b, 0) / scores.length
-        : 0;
+      const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
       return { ...p, avg, count: scores.length };
     });
 
@@ -134,8 +124,7 @@ async function main() {
     timeline,
     onSortToggle: (btn) => {
       sortMode = sortMode === "year" ? "difficulty" : "year";
-      btn.textContent =
-        sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
+      btn.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
       resetList(sortPosts(currentList));
     },
   });
@@ -151,12 +140,9 @@ async function main() {
 
     const metaMatched = enriched.filter((p) => {
       const meta =
-        String(p.date || "") +
-        " " +
-        String(p.no || "") +
-        " " +
-        String(p.source || "") +
-        " " +
+        String(p.date || "") + " " +
+        String(p.no || "") + " " +
+        String(p.source || "") + " " +
         String(p.id || "");
       return meta.includes(q);
     });

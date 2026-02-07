@@ -2,33 +2,48 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>受験数学難問発掘会</title>
 
-  <link rel="stylesheet" href="style.css" />
+  <!-- CSS -->
+  <link rel="stylesheet" href="./style.css" />
 
-  <!-- MathJax config -->
-  <script src="mathjax-config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
+  <!-- MathJax 設定（★ 本体より前） -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
 
+  <!-- MathJax 追加設定（あなたのファイル） -->
+  <script src="./mathjax-config.js"></script>
+
+  <!-- MathJax 本体 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <!-- Shift_JIS 変換用 -->
   <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js"></script>
-
-
-  
 </head>
 
 <body>
-<header>
-  <h1>受験数学難問発掘会</h1>
-  <p>サイト作成: みかりな</p>
-</header>
+  <header>
+    <h1>受験数学難問発掘会</h1>
+    <div class="subtitle">サイト作成：みかりな</div>
+  </header>
 
-<main>
-  <!-- toolbar は app.js が生成 -->
-  <div id="timeline"></div>
-</main>
+  <main id="timeline">
+    <!-- JS がここに問題カードを突っ込む -->
+  </main>
 
-<!-- 大半のコードは app.js に移動 -->
-<script type="module" src="app.js"></script>
+  <!-- メインアプリ（★ これだけ module） -->
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

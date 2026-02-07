@@ -2,16 +2,10 @@
 import { normalizeQuery } from "./latex.js";
 import { ensureBodyLoaded } from "./posts.js";
 
-/**
- * ✅ 仕様
- * - 入力を「,」「、」「，」で分割 → AND検索
- * - AND判定は「メタ + 本文」を結合した全体で行う
- * - メタには「source」「表示名（東京大学）」「年(YYYY)」も混ぜる
- */
 export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSeq }) {
   const CONCURRENCY = 6;
 
-  // 表示名（render.js と同じ）
+  // 表示名（render.jsと同じ）
   const UNIVERSITY_NAME_MAP = {
     titech: "東京科学大学",
     tokyo: "東京大学",
@@ -22,23 +16,37 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     nagoya: "名古屋大学",
     kyushu: "九州大学",
   };
-
   function displayUniversityName(source) {
     if (!source) return "";
     const key = String(source).toLowerCase();
     return UNIVERSITY_NAME_MAP[key] || source;
   }
 
+  // ★ LaTeX検索用の正規化（n^2 が n^{2} に負けないように）
+  function normalizeLatexForSearch(s) {
+    let t = normalizeQuery(s);
+
+    // 肩付き・下付きの { } を外す： ^{2} -> ^2, _{k} -> _k
+    t = t.replace(/\^\{([^}]+)\}/g, "^$1").replace(/_\{([^}]+)\}/g, "_$1");
+
+    // {a} {12} みたいな単発の波括弧も外す（邪魔になりやすい）
+    t = t.replace(/\{([a-z0-9]+)\}/g, "$1");
+
+    // 空白は全部消す（n ^ { 2 } も拾う）
+    t = t.replace(/\s+/g, "");
+
+    return t;
+  }
+
   function parseTerms(inputValue) {
     const raw = String(inputValue || "");
     return raw
       .split(/[,\u3001\uFF0C]/) // , 、 ，
-      .map((s) => normalizeQuery(s))
+      .map((s) => normalizeLatexForSearch(s))
       .filter(Boolean);
   }
 
   function extractYear(dateStr) {
-    // "2025", "2025/6", "2025年度", "H25" みたいなのから 4桁西暦を拾う（拾えなければ空）
     const s = String(dateStr || "");
     const m = s.match(/(19\d{2}|20\d{2})/);
     return m ? m[1] : "";
@@ -47,12 +55,8 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
   function metaText(p) {
     const year = extractYear(p.date);
     const uniJa = displayUniversityName(p.source);
-
-    // ★ここが重要：tokyo と 東京大学 の両方、年も入れる
-    const metaRaw =
-      `${p.date || ""} ${year} ${p.no || ""} ${p.source || ""} ${uniJa} ${p.id || ""}`;
-
-    return normalizeQuery(metaRaw);
+    const metaRaw = `${p.date || ""} ${year} ${p.no || ""} ${p.source || ""} ${uniJa} ${p.id || ""}`;
+    return normalizeLatexForSearch(metaRaw);
   }
 
   return async function runSearch(inputValue, mySeq) {
@@ -69,7 +73,7 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
       return terms.every((t) => meta.includes(t));
     });
 
-    // 本文込みでAND成立するもの（メタと本文に分散しても拾う）
+    // 本文込み（メタ+本文に分散しても拾う）
     const fullMatched = [];
     let i = 0;
 
@@ -82,15 +86,14 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
         try {
           await ensureBodyLoaded(p);
         } catch (e) {
-          // 失敗しても止めない
           console.warn("本文ロード失敗:", p?.tex, e);
         }
 
         if (mySeq !== getSearchSeq()) return;
 
         const meta = metaText(p);
-        const body = normalizeQuery(p.body || "");
-        const combined = meta + " " + body;
+        const body = normalizeLatexForSearch(p.body || "");
+        const combined = meta + body; // 空白消してるので連結はこれでOK
 
         if (terms.every((t) => combined.includes(t))) {
           fullMatched.push(p);

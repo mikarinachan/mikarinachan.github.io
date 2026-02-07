@@ -1,31 +1,33 @@
 // js/latex.js
+// - LaTeX整形
+// - 検索用正規化
+// - HTML escape
+// 互換のため escapeHTML / escapeHTML を両方 export します
 
-// 検索用：全角半角ゆれ等を揃える
 export function normalizeQuery(q) {
-  return (q || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFKC");
+  return (q || "").trim().toLowerCase().normalize("NFKC");
 }
 
-// HTMLに入れる前のエスケープ（XSS防止）
-export function escapeHTML(s) {
+const _escape = (s) => {
   return (s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
+};
 
-// LaTeX → 表示用に掃除（MathJaxで死ぬ/本文先頭に出る命令を除去）
+// ✅ どっちでimportされてもOKにする
+export const escapeHTML = _escape;
+export const escapeHTML = _escape;
+
 export function normalizeLatexForMathJax(tex) {
   return String(tex ?? "")
-    // ★これが「本文の最初に出ちゃう」犯人なので確実に消す
+    // ここで「\setlength{\baselineskip}{22pt}」を消す（←あなたの直したい箇所）
     .replace(/\\setlength\{\\baselineskip\}\{[^}]*\}\s*/g, "")
-    .replace(/\\baselineskip\s*=?\s*[^\\\n]*/g, "")
+    .replace(/\\setlength\{\\baselineskip\}\{[^}]*\}/g, "")
 
-    // よく混ざるレイアウト系
+    // MathJaxで死にやすい/警告になる命令をまとめて除去
     .replace(/\\hspace\*?\{[^}]*\}/g, "")
     .replace(/\\vspace\*?\{[^}]*\}/g, "")
     .replace(/\\(smallskip|medskip|bigskip)\b/g, "")
@@ -34,25 +36,29 @@ export function normalizeLatexForMathJax(tex) {
     .replace(/\\(qquad|quad)\b/g, " ")
     .replace(/\\,/g, " ")
 
-    // setlength類（他の長さも一括で消す）
-    .replace(/\\setlength\{[^}]+\}\{[^}]+\}\s*/g, "")
-    .replace(/\\addtolength\{[^}]+\}\{[^}]+\}\s*/g, "")
+    // レイアウト命令
+    .replace(/\\setlength\{[^}]+\}\{[^}]+\}/g, "")
+    .replace(/\\addtolength\{[^}]+\}\{[^}]+\}/g, "")
+    .replace(
+      /\\(textwidth|textheight|oddsidemargin|evensidemargin|topmargin|headheight|headsep|footskip)\s*=?\s*[^\\\n]*/g,
+      ""
+    )
 
-    // 図・外部ファイル
+    // 図・表・外部ファイル系
     .replace(/\\includegraphics(\[[^\]]*\])?\{[^}]*\}/g, "")
     .replace(/\\input\{[^}]*\}/g, "")
     .replace(/\\include\{[^}]*\}/g, "")
     .replace(/\\bibliography\{[^}]*\}/g, "")
     .replace(/\\bibliographystyle\{[^}]*\}/g, "")
 
-    // tikz/picture系は丸ごと落とす
+    // tikz/picture系
     .replace(/\\begin\{(tikzpicture|picture|pspicture|circuitikz)\}[\s\S]*?\\end\{\1\}/g, "")
 
-    // phantom/raisebox
+    // raisebox/phantom系
     .replace(/\\raisebox\{[^}]*\}\{[^}]*\}/g, "")
     .replace(/\\(phantom|hphantom|vphantom)\{[^}]*\}/g, "")
 
-    // color
+    // color系
     .replace(/\\textcolor\{[^}]*\}\{([^}]*)\}/g, "$1")
     .replace(/\\color\{[^}]*\}/g, "")
 
@@ -61,7 +67,7 @@ export function normalizeLatexForMathJax(tex) {
     .replace(/\\ref\{[^}]*\}/g, "")
     .replace(/\\cite\{[^}]*\}/g, "")
 
-    // document前後を削る
+    // document前後
     .replace(/^[\s\S]*?\\begin\{document\}/, "")
     .replace(/\\end\{document\}[\s\S]*$/, "")
 
@@ -73,22 +79,22 @@ export function normalizeLatexForMathJax(tex) {
     // 文字サイズ命令
     .replace(/\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, "")
 
-    // 環境の整形
+    // 文章レイアウト環境は剥がす
     .replace(/\\begin\{(?:flushleft|center|flushright)\}/g, "")
     .replace(/\\end\{(?:flushleft|center|flushright)\}/g, "")
     .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "\n")
     .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "\n")
 
-    // item整形
+    // item の整形
     .replace(/\\item\s*\[\s*\(([^)]+)\)\s*\]\s*/g, "\n（$1） ")
     .replace(/\\item\s*\[\s*([^\]]+)\s*\]\s*/g, "\n$1： ")
     .replace(/\\item\b\s*/g, "\n・ ")
 
-    // {4} みたいな行頭番号をQNUMタグへ（あなたの仕様）
+    // {4} みたいな行頭番号をQNUMタグへ
     .replace(/^\s*\{(\d+)\}\s*$/m, "[[QNUM:$1]]")
     .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, "[[QNUM:$1]]")
 
-    // 仕上げ
+    // 整形
     .replace(/\u3000+/g, " ")
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")

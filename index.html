@@ -7,15 +7,18 @@
 
   <link rel="stylesheet" href="./style.css" />
 
-  <!-- 文字コード変換（Shift_JIS用） -->
+  <!-- 文字コード変換（Shift_JIS 用） -->
   <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js"></script>
 
   <!-- MathJax 設定 -->
   <script src="./mathjax-config.js"></script>
 
   <!-- MathJax 本体 -->
-  <script id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <script
+    id="MathJax-script"
+    async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+  </script>
 </head>
 
 <body>
@@ -28,10 +31,10 @@
     <div id="timeline"></div>
   </main>
 
-  <!-- ★ キャッシュ破壊：毎回ここを変えると確実 -->
-  <script type="module" src="./js/main.js?v=20260207"></script>
+  <!-- ★ 超重要：search.js 対応 main.js を読む（キャッシュ破壊付き） -->
+  <script type="module" src="./js/main.js?v=20260207_1745"></script>
 
-  <!-- エラー可視化（保険） -->
+  <!-- JSエラーを画面に出す保険 -->
   <script>
     window.addEventListener("error", (e) => {
       console.error("GLOBAL ERROR:", e.error || e.message);
@@ -42,7 +45,8 @@
         div.style.margin = "12px";
         div.style.border = "1px solid #f99";
         div.style.background = "#fff5f5";
-        div.innerHTML = "❌ JavaScript エラーで描画が止まりました。<br>Console を確認してください。";
+        div.innerHTML =
+          "❌ JavaScript エラーで描画が止まりました。<br>Console を確認してください。";
         tl.prepend(div);
       }
     });

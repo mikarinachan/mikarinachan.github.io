@@ -129,26 +129,6 @@ async function fetchTextWithEncoding(url, encoding = "auto") {
 }
 
 
-  // 2) Shift_JIS 系は encoding-japanese で変換（Safariでも安定）
-  if (enc === "shift_jis" || enc === "shift-jis" || enc === "sjis") {
-    if (!window.Encoding) {
-      throw new Error("encoding-japanese が読み込まれていません（index.htmlを確認）");
-    }
-    // SJIS -> UNICODE(string)
-    return window.Encoding.convert(bytes, {
-      to: "UNICODE",
-      from: "SJIS",
-      type: "string"
-    });
-  }
-
-  // 3) その他は最後に TextDecoder を試す（ダメならUTF-8）
-  try {
-    return new TextDecoder(enc).decode(bytes);
-  } catch {
-    return new TextDecoder("utf-8").decode(bytes);
-  }
-}
 
 
 /* ---------- util: pathから文字コードを推測 ---------- */
@@ -273,7 +253,8 @@ async function loadPostIndex() {
       date: String(p.date ?? ""),
       no: Number(p.no ?? 0),
       source: String(p.source ?? "入試問題"),
-      encoding: String(p.encoding ?? "utf-8"),
+      encoding: String(p.encoding ?? "auto"),
+
       explain: String(p.explain ?? ""),
       answer: String(p.answer ?? ""),
       body: ""

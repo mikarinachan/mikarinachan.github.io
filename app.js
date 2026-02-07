@@ -515,10 +515,14 @@ function resetList(newList) {
   renderNextPage(); // 最初の1ページだけ即表示
 }
 
+let searchSeq = 0;
+
+
 /* ---------- search ---------- */
 function normalizeQuery(q) {
-  return (q || "").trim().toLowerCase();
+  return (q || "").trim().toLowerCase().normalize("NFKC");
 }
+
 
 /* ---------- main ---------- */
 async function main() {
@@ -557,30 +561,66 @@ async function main() {
   };
 
   // 検索（本文検索のため、未ロードのbodyも必要なら読む）
-  searchInput.addEventListener("input", async () => {
-    const q = normalizeQuery(searchInput.value);
+  // 検索（本文検索のため、未ロードのbodyも必要なら読む）
+searchInput.addEventListener("input", async () => {
+  const mySeq = ++searchSeq;
+  const q = normalizeQuery(searchInput.value);
 
-    if (!q) {
-      resetList(sortPosts(enriched));
-      return;
-    }
+  if (!q) {
+    resetList(sortPosts(enriched));
+    return;
+  }
 
-    const metaMatched = enriched.filter((p) => {
-      const meta = `${p.date}_${p.no} ${p.source}`.toLowerCase();
-      return meta.includes(q);
-    });
+  const metaMatched = enriched.filter((p) => {
+    const meta = `${p.date}_${p.no} ${p.source}`.toLowerCase();
+    return meta.includes(q);
+  });
 
-    const bodyMatched = [];
-    for (const p of enriched) {
+  const bodyMatched = [];
+  const CONCURRENCY = 6;
+
+  let i = 0;
+  const worker = async () => {
+    while (i < enriched.length) {
+      const p = enriched[i++];
+
+      if (mySeq !== searchSeq) return;
+
       if (!p.body) {
         try {
-          const raw = await fetchTextWithEncoding(p.tex, p.encoding || "auto")
-
+          const raw = await fetchTextWithEncoding(p.tex, p.encoding || "auto");
           p.body = normalizeLatexForMathJax(raw);
-        } catch {}
+        } catch (e) {
+          console.warn("本文ロード失敗:", p.tex, e);
+          p.body = "";
+        }
       }
+
       if ((p.body || "").toLowerCase().includes(q)) bodyMatched.push(p);
     }
+  };
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+  // 入力が更新されたら反映しない
+  if (mySeq !== searchSeq) return;
+
+  const merged = [];
+  const seen = new Set();
+  for (const p of [...metaMatched, ...bodyMatched]) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    merged.push(p);
+  }
+
+  resetList(sortPosts(merged));
+});
+
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+  
+
 
     const merged = [];
     const seen = new Set();

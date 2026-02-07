@@ -21,15 +21,21 @@ async function fetchTextWithEncoding(url, encoding = "auto") {
 
   // Shift_JIS 変換（encoding-japanese）
   const decodeSJIS = () => {
-    if (!window.Encoding) {
-      throw new Error("encoding-japanese が読み込まれていません（index.htmlを確認）");
-    }
+  if (window.Encoding) {
     return window.Encoding.convert(bytes, {
       to: "UNICODE",
       from: "CP932",
       type: "string",
     });
-  };
+  }
+  // Encoding が無いときは “落とさない”
+  try {
+    return new TextDecoder("shift_jis").decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+};
+
 
   // UTF-8 変換（厳格：壊れてたら例外にする）
   const decodeUTF8Strict = () => {
@@ -404,10 +410,15 @@ async function renderOne(p) {
   const texEl = card.querySelector(".tex");
 
   if (!p.body) {
-    const raw = await fetchTextWithEncoding(p.tex, p.encoding || "auto")
-
+  try {
+    const raw = await fetchTextWithEncoding(p.tex, p.encoding || "auto");
     p.body = normalizeLatexForMathJax(raw);
+  } catch (e) {
+    console.warn("本文ロード失敗:", p.tex, e);
+    p.body = "（本文の読み込みに失敗しました）";
   }
+}
+
 
   // 1) QNUM だけ先に避難（許可HTML）
   let s = p.body ?? "";
@@ -617,21 +628,6 @@ searchInput.addEventListener("input", async () => {
 });
 
 
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-
-  
-
-
-    const merged = [];
-    const seen = new Set();
-    for (const p of [...metaMatched, ...bodyMatched]) {
-      if (seen.has(p.id)) continue;
-      seen.add(p.id);
-      merged.push(p);
-    }
-
-    resetList(sortPosts(merged));
-  });
 
   // 追加：header高さを再同期（フォントロード等でズレる対策）
   requestAnimationFrame(syncHeaderHeight);

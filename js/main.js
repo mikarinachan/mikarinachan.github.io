@@ -1,10 +1,12 @@
 // js/main.js
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
-import { loadRatings } from "./firebase.js";
-import { latexBodyToSafeHTML } from "./latex.js";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
-import { createSearchRunner } from "./search.js";
+console.log("MAIN 1800"); // ★ここがConsoleに出たら新mainが動いてる証拠
+
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1800";
+import { loadRatings } from "./firebase.js?v=20260207_1800";
+import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1800";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1800";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1800";
+import { createSearchRunner } from "./search.js?v=20260207_1800";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -17,13 +19,11 @@ let rendered = 0;
 let isLoading = false;
 let observer = null;
 
-// 検索の中断制御用
 let searchSeq = 0;
 
 const sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
-/* ---------- sort ---------- */
 function sortPosts(list) {
   const arr = (list || []).slice();
   if (sortMode === "difficulty") {
@@ -38,7 +38,6 @@ function sortPosts(list) {
   return arr;
 }
 
-/* ---------- render ---------- */
 async function renderOne(p) {
   if (!p) return;
 
@@ -81,7 +80,6 @@ async function renderNextPage() {
     sentinel.remove();
     if (observer) observer.disconnect();
   }
-
   isLoading = false;
 }
 
@@ -104,7 +102,6 @@ function resetList(list) {
   renderNextPage();
 }
 
-/* ---------- debounce ---------- */
 function debounce(fn, ms) {
   let t = null;
   return (...args) => {
@@ -113,7 +110,6 @@ function debounce(fn, ms) {
   };
 }
 
-/* ---------- main ---------- */
 async function main() {
   let posts = [];
   try {
@@ -121,11 +117,6 @@ async function main() {
   } catch (e) {
     console.error(e);
     showNote(timeline, "❌ posts_index.json の読み込みに失敗しました");
-    return;
-  }
-
-  if (!posts.length) {
-    showNote(timeline, "⚠️ データが空です（posts_index.json を確認）");
     return;
   }
 
@@ -141,7 +132,7 @@ async function main() {
       return { ...p, avg, count: scores.length };
     });
 
-  const { searchInput } = buildToolbar({
+  const ui = buildToolbar({
     timeline,
     onSortToggle: (btn) => {
       sortMode = sortMode === "year" ? "difficulty" : "year";
@@ -150,10 +141,9 @@ async function main() {
     },
   });
 
-  // 初期表示
   resetList(sortPosts(enriched));
 
-  // ★ search.js を使う検索ランナー
+  // ★ search.js を必ず使う
   const runner = createSearchRunner({
     enriched,
     sortPosts,
@@ -163,16 +153,13 @@ async function main() {
 
   const runSearch = debounce(async () => {
     const mySeq = ++searchSeq;
-
-    // ★ここ重要：normalizeしない（カンマ分割/LaTeX正規化は search.js 側）
-    await runner(searchInput.value, mySeq);
+    // ★ normalizeしない（カンマ分割 / LaTeX正規化は search.js 側）
+    await runner(ui.searchInput.value, mySeq);
   }, 200);
 
-  searchInput.addEventListener("input", runSearch);
+  ui.searchInput.addEventListener("input", runSearch);
 
   requestAnimationFrame(syncHeaderHeight);
-  setTimeout(syncHeaderHeight, 300);
-  setTimeout(syncHeaderHeight, 1200);
 }
 
 main();

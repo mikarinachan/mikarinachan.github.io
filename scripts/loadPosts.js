@@ -7,10 +7,10 @@ async function fetchTextWithSJIS(url) {
 }
 
 async function loadPosts() {
-  const res = await fetch("posts_index.json");
+  const res = await fetch("posts_index.json"); // ★置き換え①
   const posts = await res.json();
 
-  const container = document.getElementById("posts");
+  const container = document.getElementById("timeline"); // ★置き換え②
 
   for (const post of posts) {
     const texText = await fetchTextWithSJIS(post.tex);
@@ -19,7 +19,7 @@ async function loadPosts() {
     section.className = "post";
 
     section.innerHTML = `
-      <h2>${post.title}</h2>
+      <h2>${post.title ?? ""}</h2>
       <div class="math">
 ${texText}
       </div>
@@ -29,9 +29,8 @@ ${texText}
     container.appendChild(section);
   }
 
-  // MathJax 再描画
   if (window.MathJax) {
-    MathJax.typesetPromise();
+    await MathJax.typesetPromise();
   }
 }
 

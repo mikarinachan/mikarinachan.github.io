@@ -1,20 +1,33 @@
 // js/latex.js
 
-// 文字列検索用に正規化（小文字化＋全角半角などの揺れを吸収）
-export function normalizeQuery(q) {
-  return (q || "").trim().toLowerCase().normalize("NFKC");
+/* ---------- util: HTML escape ---------- */
+export function escapeHTML(s) {
+  return (s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-// LaTeX → 表示用に正規化（MathJax非対応/レイアウト命令などを剥がす）
+/* ---------- util: 検索用 正規化 ---------- */
+export function normalizeQuery(q) {
+  return (q ?? "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFKC");
+}
+
+/* ---------- util: LaTeX → 表示用に正規化（不要命令を剥がす） ---------- */
 export function normalizeLatexForMathJax(tex) {
   return (tex ?? "")
-    /* ---- 表示に出て欲しくないレイアウト系（今回の本命） ---- */
-    // \setlength{\baselineskip}{22pt} など（表記ゆれ込みで全部消す）
-    .replace(/\\setlength\s*\{\s*\\baselineskip\s*\}\s*\{\s*[^}]*\}/g, "")
-    // \baselineskip=22pt みたいな単独指定も念のため
-    .replace(/\\baselineskip\s*=?\s*[^\\\n]*/g, "")
+    // ★ これが表示されちゃう件の本丸：setlength 系を除去
+    .replace(/\\setlength\s*\{\s*\\baselineskip\s*\}\s*\{[^}]*\}\s*/g, "")
+    .replace(/\\setlength\s*\{[^}]+\}\s*\{[^}]+\}\s*/g, "")
+    .replace(/\\addtolength\s*\{[^}]+\}\s*\{[^}]+\}\s*/g, "")
 
-    /* ---- 余白/改ページ ---- */
+    // MathJaxで死にやすい/警告になる命令をまとめて除去
     .replace(/\\hspace\*?\{[^}]*\}/g, "")
     .replace(/\\vspace\*?\{[^}]*\}/g, "")
     .replace(/\\(smallskip|medskip|bigskip)\b/g, "")
@@ -23,61 +36,57 @@ export function normalizeLatexForMathJax(tex) {
     .replace(/\\(qquad|quad)\b/g, " ")
     .replace(/\\,/g, " ")
 
-    /* ---- setlength/addtolength（baselineskip以外も） ---- */
-    .replace(/\\setlength\{[^}]+\}\{[^}]+\}/g, "")
-    .replace(/\\addtolength\{[^}]+\}\{[^}]+\}/g, "")
-
-    /* ---- 図・外部ファイル系 ---- */
+    // 図・表・外部ファイル系
     .replace(/\\includegraphics(\[[^\]]*\])?\{[^}]*\}/g, "")
     .replace(/\\input\{[^}]*\}/g, "")
     .replace(/\\include\{[^}]*\}/g, "")
     .replace(/\\bibliography\{[^}]*\}/g, "")
     .replace(/\\bibliographystyle\{[^}]*\}/g, "")
 
-    /* ---- tikz/picture系 ---- */
+    // tikz/picture系
     .replace(/\\begin\{(tikzpicture|picture|pspicture|circuitikz)\}[\s\S]*?\\end\{\1\}/g, "")
 
-    /* ---- raisebox/phantom系 ---- */
+    // raisebox/phantom系
     .replace(/\\raisebox\{[^}]*\}\{[^}]*\}/g, "")
     .replace(/\\(phantom|hphantom|vphantom)\{[^}]*\}/g, "")
 
-    /* ---- color系 ---- */
-    .replace(/\\textcolor\{[^}]*\}\{([\s\S]*?)\}/g, "$1")
+    // color系
+    .replace(/\\textcolor\{[^}]*\}\{([^}]*)\}/g, "$1")
     .replace(/\\color\{[^}]*\}/g, "")
 
-    /* ---- label/ref/cite ---- */
+    // label/ref/cite
     .replace(/\\label\{[^}]*\}/g, "")
     .replace(/\\ref\{[^}]*\}/g, "")
     .replace(/\\cite\{[^}]*\}/g, "")
 
-    /* ---- document前後 ---- */
+    // document前後
     .replace(/^[\s\S]*?\\begin\{document\}/, "")
     .replace(/\\end\{document\}[\s\S]*$/, "")
 
-    /* ---- 前置き命令 ---- */
+    // 前置き命令
     .replace(/\\documentclass(\[[^\]]*\])?\{[^}]*\}/g, "")
     .replace(/\\usepackage(\[[^\]]*\])?\{[^}]*\}/g, "")
     .replace(/\\pagestyle\{[^}]+\}/g, "")
 
-    /* ---- 文字サイズ命令 ---- */
+    // 文字サイズ命令
     .replace(/\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, "")
 
-    /* ---- 文章レイアウト環境 ---- */
+    // 文章レイアウト環境は剥がす
     .replace(/\\begin\{(?:flushleft|center|flushright)\}/g, "")
     .replace(/\\end\{(?:flushleft|center|flushright)\}/g, "")
     .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "\n")
     .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "\n")
 
-    /* ---- item整形 ---- */
+    // item の整形（(i)(ii)(iii)も(1)も対応）
     .replace(/\\item\s*\[\s*\(([^)]+)\)\s*\]\s*/g, "\n（$1） ")
     .replace(/\\item\s*\[\s*([^\]]+)\s*\]\s*/g, "\n$1： ")
     .replace(/\\item\b\s*/g, "\n・ ")
 
-    /* ---- 問題番号タグ ---- */
+    // {4} みたいな行頭番号をQNUMタグへ
     .replace(/^\s*\{(\d+)\}\s*$/m, "[[QNUM:$1]]")
     .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, "[[QNUM:$1]]")
 
-    /* ---- 整形 ---- */
+    // 整形
     .replace(/\u3000+/g, " ")
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")

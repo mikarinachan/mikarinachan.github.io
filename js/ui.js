@@ -1,5 +1,4 @@
 // js/ui.js
-import { normalizeQuery } from "./latex.js";
 
 export function syncHeaderHeight() {
   const h = document.querySelector("header")?.offsetHeight || 72;
@@ -13,18 +12,14 @@ export function showNote(timeline, html) {
   timeline.prepend(div);
 }
 
-/**
- * toolbar を timeline の直前に挿入して返す
- * @returns { searchInput, clearBtn, sortToggle }
- */
-export function buildToolbar(timeline, { onSortToggle } = {}) {
-  if (!timeline) throw new Error("buildToolbar: timeline が未指定です");
+export function buildToolbar({ timeline, onSortToggle }) {
+  if (!timeline) throw new Error("buildToolbar: timeline がありません");
 
   const toolbar = document.createElement("div");
   toolbar.className = "toolbar";
 
-  const toolbarInner = document.createElement("div");
-  toolbarInner.className = "toolbar-inner";
+  const inner = document.createElement("div");
+  inner.className = "toolbar-inner";
 
   const searchInput = document.createElement("input");
   searchInput.type = "search";
@@ -40,19 +35,19 @@ export function buildToolbar(timeline, { onSortToggle } = {}) {
 
   const sortToggle = document.createElement("button");
   sortToggle.textContent = "並び順：年度順";
-  sortToggle.onclick = () => onSortToggle?.();
+  sortToggle.onclick = () => onSortToggle?.(sortToggle);
 
-  toolbarInner.appendChild(searchInput);
-  toolbarInner.appendChild(clearBtn);
-  toolbarInner.appendChild(sortToggle);
-  toolbar.appendChild(toolbarInner);
+  inner.appendChild(searchInput);
+  inner.appendChild(clearBtn);
+  inner.appendChild(sortToggle);
+  toolbar.appendChild(inner);
 
-  // ★ ここで必ず timeline の直前に差し込む
-  timeline.before(toolbar);
+  // ★ここが以前のエラー原因になりやすいので安全に
+  timeline.parentNode?.insertBefore(toolbar, timeline);
 
-  // 初回同期（ヘッダー高さ）
+  // header高さ同期
   syncHeaderHeight();
   window.addEventListener("resize", syncHeaderHeight);
 
-  return { searchInput, clearBtn, sortToggle };
+  return { toolbar, searchInput, clearBtn, sortToggle };
 }

@@ -528,51 +528,11 @@ function resetList(newList) {
 
 let searchSeq = 0;
 
-
-/* ---------- search ---------- */
 function normalizeQuery(q) {
   return (q || "").trim().toLowerCase().normalize("NFKC");
 }
 
-
-/* ---------- main ---------- */
-async function main() {
-  let posts = [];
-  try {
-    posts = await loadPostIndex();
-  } catch (e) {
-    console.error(e);
-    showNote(`❌ posts/ の一覧取得に失敗しました。<div class="muted">${String(e.message || e)}</div>`);
-    return;
-  }
-
-  if (posts.length === 0) {
-    showNote(
-      "⚠️ posts/ に対象ファイルが見つかりません。<div class='muted'>ファイル名は <b>2025_6.tex</b> のように <b>YYYY_N.tex</b> 形式にしてください。</div>"
-    );
-    return;
-  }
-
-  const ratingMap = await loadRatings();
-
-  const enriched = posts.map((p) => {
-    const scores = ratingMap[p.id] ?? [];
-    const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    return { ...p, avg, count: scores.length };
-  });
-
-  // 初期表示
-  resetList(sortPosts(enriched));
-
-  // 並び替えボタン
-  sortToggle.onclick = () => {
-    sortMode = sortMode === "year" ? "difficulty" : "year";
-    sortToggle.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
-    resetList(sortPosts(currentList));
-  };
-
-  // 検索（本文検索のため、未ロードのbodyも必要なら読む）
-  // 検索（本文検索のため、未ロードのbodyも必要なら読む）
+// main() の中、sortToggle.onclick の下にこれだけ置く（※ searchInput.addEventListener はこれ1個だけ）
 searchInput.addEventListener("input", async () => {
   const mySeq = ++searchSeq;
   const q = normalizeQuery(searchInput.value);
@@ -583,7 +543,7 @@ searchInput.addEventListener("input", async () => {
   }
 
   const metaMatched = enriched.filter((p) => {
-    const meta = `${p.date}_${p.no} ${p.source}`.toLowerCase();
+    const meta = normalizeQuery(`${p.date}_${p.no} ${p.source}`);
     return meta.includes(q);
   });
 
@@ -595,7 +555,7 @@ searchInput.addEventListener("input", async () => {
     while (i < enriched.length) {
       const p = enriched[i++];
 
-      if (mySeq !== searchSeq) return;
+      if (mySeq !== searchSeq) return; // 入力更新で中断
 
       if (!p.body) {
         try {
@@ -607,13 +567,12 @@ searchInput.addEventListener("input", async () => {
         }
       }
 
-      if ((p.body || "").toLowerCase().includes(q)) bodyMatched.push(p);
+      if (normalizeQuery(p.body).includes(q)) bodyMatched.push(p);
     }
   };
 
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-  // 入力が更新されたら反映しない
   if (mySeq !== searchSeq) return;
 
   const merged = [];
@@ -626,6 +585,7 @@ searchInput.addEventListener("input", async () => {
 
   resetList(sortPosts(merged));
 });
+
 
 
 

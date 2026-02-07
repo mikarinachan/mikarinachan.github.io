@@ -1,13 +1,10 @@
 // js/main.js
-
-const V = "20260207_1745"; // ★困ったらここだけ数字変える
-
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1745";
-import { loadRatings } from "./firebase.js?v=20260207_1745";
-import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1745";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1745";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1745";
-import { createSearchRunner } from "./search.js?v=20260207_1745";
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
+import { loadRatings } from "./firebase.js";
+import { latexBodyToSafeHTML } from "./latex.js";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
+import { createSearchRunner } from "./search.js";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -20,14 +17,15 @@ let rendered = 0;
 let isLoading = false;
 let observer = null;
 
+// 検索の中断制御用
 let searchSeq = 0;
 
 const sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
-/* ---------------- sort ---------------- */
+/* ---------- sort ---------- */
 function sortPosts(list) {
-  const arr = list.slice();
+  const arr = (list || []).slice();
   if (sortMode === "difficulty") {
     arr.sort((a, b) => (Number(b.avg) || 0) - (Number(a.avg) || 0));
   } else {
@@ -40,8 +38,10 @@ function sortPosts(list) {
   return arr;
 }
 
-/* ---------------- render ---------------- */
+/* ---------- render ---------- */
 async function renderOne(p) {
+  if (!p) return;
+
   const ratedKey = "rated_" + p.id;
   const alreadyRated = localStorage.getItem(ratedKey);
 
@@ -81,11 +81,12 @@ async function renderNextPage() {
     sentinel.remove();
     if (observer) observer.disconnect();
   }
+
   isLoading = false;
 }
 
 function resetList(list) {
-  currentList = list;
+  currentList = (list || []).filter(Boolean);
   rendered = 0;
 
   timeline.innerHTML = "";
@@ -98,12 +99,12 @@ function resetList(list) {
     },
     { rootMargin: "800px" }
   );
-
   observer.observe(sentinel);
+
   renderNextPage();
 }
 
-/* ---------------- debounce ---------------- */
+/* ---------- debounce ---------- */
 function debounce(fn, ms) {
   let t = null;
   return (...args) => {
@@ -112,14 +113,19 @@ function debounce(fn, ms) {
   };
 }
 
-/* ---------------- main ---------------- */
+/* ---------- main ---------- */
 async function main() {
-  let posts;
+  let posts = [];
   try {
     posts = await loadPostIndex();
   } catch (e) {
     console.error(e);
     showNote(timeline, "❌ posts_index.json の読み込みに失敗しました");
+    return;
+  }
+
+  if (!posts.length) {
+    showNote(timeline, "⚠️ データが空です（posts_index.json を確認）");
     return;
   }
 
@@ -135,12 +141,11 @@ async function main() {
       return { ...p, avg, count: scores.length };
     });
 
-  const ui = buildToolbar({
+  const { searchInput } = buildToolbar({
     timeline,
     onSortToggle: (btn) => {
       sortMode = sortMode === "year" ? "difficulty" : "year";
-      btn.textContent =
-        sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
+      btn.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
       resetList(sortPosts(currentList));
     },
   });
@@ -148,7 +153,7 @@ async function main() {
   // 初期表示
   resetList(sortPosts(enriched));
 
-  // ★ search.js を必ず使う
+  // ★ search.js を使う検索ランナー
   const runner = createSearchRunner({
     enriched,
     sortPosts,
@@ -159,13 +164,15 @@ async function main() {
   const runSearch = debounce(async () => {
     const mySeq = ++searchSeq;
 
-    // ★ここ重要：normalizeしない（カンマ分割とLaTeX正規化は search.js 側）
-    await runner(ui.searchInput.value, mySeq);
+    // ★ここ重要：normalizeしない（カンマ分割/LaTeX正規化は search.js 側）
+    await runner(searchInput.value, mySeq);
   }, 200);
 
-  ui.searchInput.addEventListener("input", runSearch);
+  searchInput.addEventListener("input", runSearch);
 
   requestAnimationFrame(syncHeaderHeight);
+  setTimeout(syncHeaderHeight, 300);
+  setTimeout(syncHeaderHeight, 1200);
 }
 
 main();

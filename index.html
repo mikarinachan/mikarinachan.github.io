@@ -14,11 +14,8 @@
   <script src="./mathjax-config.js"></script>
 
   <!-- MathJax 本体 -->
-  <script
-    id="MathJax-script"
-    async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
-  </script>
+  <script id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 
 <body>
@@ -31,7 +28,7 @@
     <div id="timeline"></div>
   </main>
 
-  <!-- ★ キャッシュ破壊付き main.js -->
+  <!-- ★ キャッシュ破壊：毎回ここを変えると確実 -->
   <script type="module" src="./js/main.js?v=20260207"></script>
 
   <!-- エラー可視化（保険） -->
@@ -45,6 +42,10 @@
         div.style.margin = "12px";
         div.style.border = "1px solid #f99";
         div.style.background = "#fff5f5";
-        div.innerHTML =
-          "❌ JavaScript エラーで描画が止まりました。<br>Console を確認してください。";
-        tl
+        div.innerHTML = "❌ JavaScript エラーで描画が止まりました。<br>Console を確認してください。";
+        tl.prepend(div);
+      }
+    });
+  </script>
+</body>
+</html>

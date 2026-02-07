@@ -1,43 +1,71 @@
-import postsIndex from "../posts_index.json" assert { type: "json" };
+// js/search.js
+import { normalizeQuery } from "./latex.js";
+import { ensureBodyLoaded } from "./posts.js";
 
-let allPosts = [...postsIndex];
-let currentPosts = [...postsIndex];
-let currentSort = "new";
+/**
+ * createSearchRunner({
+ *   enriched,          // 全投稿配列
+ *   sortPosts,         // 並び替え関数
+ *   resetList,         // 表示を入れ替える関数
+ *   getSearchSeq,      // 現在seq参照（中断用）
+ * })
+ */
+export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSeq }) {
+  const CONCURRENCY = 6;
 
-export function searchPosts(keyword) {
-  if (!keyword) {
-    currentPosts = [...allPosts];
-    return currentPosts;
-  }
+  return async function runSearch(inputValue, mySeq) {
+    const q = normalizeQuery(inputValue);
 
-  const k = keyword.toLowerCase();
-  currentPosts = allPosts.filter(p =>
-    p.id.toLowerCase().includes(k) ||
-    p.source.toLowerCase().includes(k) ||
-    String(p.date).includes(k)
-  );
-  return currentPosts;
-}
+    // 空なら全件
+    if (!q) {
+      resetList(sortPosts(enriched));
+      return;
+    }
 
-export function sortPosts(type) {
-  currentSort = type;
-  const base = [...currentPosts];
+    // メタ一致（即）
+    const metaMatched = enriched.filter((p) => {
+      const meta = normalizeQuery(`${p.date}_${p.no} ${p.source}`);
+      return meta.includes(q);
+    });
 
-  if (type === "new") {
-    base.sort((a, b) => b.date - a.date);
-  }
-  if (type === "old") {
-    base.sort((a, b) => a.date - b.date);
-  }
-  if (type === "no") {
-    base.sort((a, b) => a.no - b.no);
-  }
+    // 本文一致（未ロードでも必ずロードして判定）
+    const bodyMatched = [];
+    let i = 0;
 
-  currentPosts = base;
-  return currentPosts;
-}
+    const worker = async () => {
+      while (i < enriched.length) {
+        const p = enriched[i++];
 
-export function getAllPosts() {
-  currentPosts = [...allPosts];
-  return currentPosts;
+        // 入力が更新されたら中断（古い検索結果を反映しない）
+        if (mySeq !== getSearchSeq()) return;
+
+        try {
+          await ensureBodyLoaded(p); // ★これが重要：未表示でも本文を確実にロード
+        } catch (e) {
+          // 失敗しても止めない（そのpostは検索対象外になる）
+          console.warn("本文ロード失敗:", p?.tex, e);
+        }
+
+        if (mySeq !== getSearchSeq()) return;
+
+        const body = normalizeQuery(p.body || "");
+        if (body.includes(q)) bodyMatched.push(p);
+      }
+    };
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+    if (mySeq !== getSearchSeq()) return;
+
+    // マージ（重複除去）
+    const merged = [];
+    const seen = new Set();
+    for (const p of [...metaMatched, ...bodyMatched]) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      merged.push(p);
+    }
+
+    resetList(sortPosts(merged));
+  };
 }

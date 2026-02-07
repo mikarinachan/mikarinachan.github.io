@@ -147,4 +147,79 @@ async function main() {
       return { ...p, avg, count: scores.length };
     });
 
-  cons
+  const ui = buildToolbar({
+    timeline,
+    onSortToggle: (btn) => {
+      sortMode = (sortMode === "year") ? "difficulty" : "year";
+      btn.textContent = (sortMode === "year") ? "並び順：年度順" : "並び順：難易度順";
+      resetList(sortPosts(currentList));
+    },
+  });
+
+  // 初期表示
+  resetList(sortPosts(enriched));
+
+  const runSearch = debounce(async () => {
+    const mySeq = ++searchSeq;
+    const q = normalizeQuery(ui.searchInput.value);
+
+    if (!q) {
+      resetList(sortPosts(enriched));
+      return;
+    }
+
+    // メタ（軽い）
+    const metaMatched = enriched.filter((p) => {
+      const meta = normalizeQuery(String(p.date || "") + " " + String(p.no || "") + " " + String(p.source || "") + " " + String(p.id || ""));
+      return meta.indexOf(q) !== -1;
+    });
+
+    // 本文（重い）※失敗しても止めない
+    const bodyMatched = [];
+    const CONCURRENCY = 6;
+    let idx = 0;
+
+    async function worker() {
+      while (idx < enriched.length) {
+        const p = enriched[idx++];
+        if (mySeq !== searchSeq) return;
+
+        try {
+          await ensureBodyLoaded(p);
+        } catch (e) {
+          continue;
+        }
+        if (mySeq !== searchSeq) return;
+
+        if (normalizeQuery(p.body || "").indexOf(q) !== -1) bodyMatched.push(p);
+      }
+    }
+
+    const jobs = [];
+    for (let i = 0; i < CONCURRENCY; i++) jobs.push(worker());
+    await Promise.all(jobs);
+
+    if (mySeq !== searchSeq) return;
+
+    // マージ（重複排除）
+    const merged = [];
+    const seen = new Set();
+    const all = metaMatched.concat(bodyMatched);
+    for (let i = 0; i < all.length; i++) {
+      const p = all[i];
+      if (!p || seen.has(p.id)) continue;
+      seen.add(p.id);
+      merged.push(p);
+    }
+
+    resetList(sortPosts(merged));
+  }, 200);
+
+  ui.searchInput.addEventListener("input", runSearch);
+
+  requestAnimationFrame(syncHeaderHeight);
+  setTimeout(syncHeaderHeight, 300);
+  setTimeout(syncHeaderHeight, 1200);
+}
+
+main();

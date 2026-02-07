@@ -1,4 +1,5 @@
 // js/ui.js
+import { normalizeQuery } from "./latex.js";
 
 export function syncHeaderHeight() {
   const h = document.querySelector("header")?.offsetHeight || 72;
@@ -6,14 +7,17 @@ export function syncHeaderHeight() {
 }
 
 export function showNote(timeline, html) {
-  if (!timeline) return;
   const div = document.createElement("div");
   div.className = "system-note";
   div.innerHTML = html;
   timeline.prepend(div);
 }
 
-export function buildToolbar(timeline) {
+/**
+ * toolbar を timeline の直前に挿入して返す
+ * @returns { searchInput, clearBtn, sortToggle }
+ */
+export function buildToolbar(timeline, { onSortToggle } = {}) {
   if (!timeline) throw new Error("buildToolbar: timeline が未指定です");
 
   const toolbar = document.createElement("div");
@@ -29,40 +33,26 @@ export function buildToolbar(timeline) {
 
   const clearBtn = document.createElement("button");
   clearBtn.textContent = "クリア";
+  clearBtn.onclick = () => {
+    searchInput.value = "";
+    searchInput.dispatchEvent(new Event("input"));
+  };
 
   const sortToggle = document.createElement("button");
   sortToggle.textContent = "並び順：年度順";
+  sortToggle.onclick = () => onSortToggle?.();
 
   toolbarInner.appendChild(searchInput);
   toolbarInner.appendChild(clearBtn);
   toolbarInner.appendChild(sortToggle);
   toolbar.appendChild(toolbarInner);
 
-  // timeline の直前に挿入
+  // ★ ここで必ず timeline の直前に差し込む
   timeline.before(toolbar);
 
-  // 返す（main.js側でイベントを貼る）
-  return { toolbar, searchInput, clearBtn, sortToggle };
-}
+  // 初回同期（ヘッダー高さ）
+  syncHeaderHeight();
+  window.addEventListener("resize", syncHeaderHeight);
 
-/**
- * 画面上に「JSエラーで停止しました」表示を出す（任意）
- */
-export function attachGlobalErrorBanner(timeline) {
-  const banner = document.createElement("div");
-  banner.className = "system-note";
-  banner.style.borderColor = "#f2b8b5";
-  banner.style.background = "#fff4f4";
-  banner.style.display = "none";
-  banner.innerHTML =
-    "❌ JavaScript エラーで描画が止まりました。<br>Console を確認してください。";
-
-  timeline?.prepend(banner);
-
-  window.addEventListener("error", () => {
-    banner.style.display = "block";
-  });
-  window.addEventListener("unhandledrejection", () => {
-    banner.style.display = "block";
-  });
+  return { searchInput, clearBtn, sortToggle };
 }

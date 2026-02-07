@@ -91,7 +91,7 @@ async function fetchTextWithEncoding(url, encoding = "auto") {
     }
     return window.Encoding.convert(bytes, {
       to: "UNICODE",
-      from: "SJIS",
+      from: "CP932",
       type: "string",
     });
   };

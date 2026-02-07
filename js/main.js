@@ -1,10 +1,13 @@
 // js/main.js
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
-import { loadRatings } from "./firebase.js";
-import { latexBodyToSafeHTML } from "./latex.js";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
-import { createSearchRunner } from "./search.js";
+
+const V = "20260207_1745"; // ★困ったらここだけ数字変える
+
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1745";
+import { loadRatings } from "./firebase.js?v=20260207_1745";
+import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1745";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1745";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1745";
+import { createSearchRunner } from "./search.js?v=20260207_1745";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -17,15 +20,12 @@ let rendered = 0;
 let isLoading = false;
 let observer = null;
 
-// 検索の中断制御用
 let searchSeq = 0;
 
 const sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
-/* ===============================
-   並び替え
-================================ */
+/* ---------------- sort ---------------- */
 function sortPosts(list) {
   const arr = list.slice();
   if (sortMode === "difficulty") {
@@ -40,12 +40,8 @@ function sortPosts(list) {
   return arr;
 }
 
-/* ===============================
-   描画
-================================ */
+/* ---------------- render ---------------- */
 async function renderOne(p) {
-  if (!p) return;
-
   const ratedKey = "rated_" + p.id;
   const alreadyRated = localStorage.getItem(ratedKey);
 
@@ -98,20 +94,16 @@ function resetList(list) {
   if (observer) observer.disconnect();
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((e) => e.isIntersecting)) {
-        renderNextPage();
-      }
+      if (entries.some((e) => e.isIntersecting)) renderNextPage();
     },
     { rootMargin: "800px" }
   );
-  observer.observe(sentinel);
 
+  observer.observe(sentinel);
   renderNextPage();
 }
 
-/* ===============================
-   debounce
-================================ */
+/* ---------------- debounce ---------------- */
 function debounce(fn, ms) {
   let t = null;
   return (...args) => {
@@ -120,9 +112,7 @@ function debounce(fn, ms) {
   };
 }
 
-/* ===============================
-   main
-================================ */
+/* ---------------- main ---------------- */
 async function main() {
   let posts;
   try {
@@ -130,11 +120,6 @@ async function main() {
   } catch (e) {
     console.error(e);
     showNote(timeline, "❌ posts_index.json の読み込みに失敗しました");
-    return;
-  }
-
-  if (!posts.length) {
-    showNote(timeline, "⚠️ 問題データがありません");
     return;
   }
 
@@ -150,7 +135,6 @@ async function main() {
       return { ...p, avg, count: scores.length };
     });
 
-  // UI（検索バー・並び替え）
   const ui = buildToolbar({
     timeline,
     onSortToggle: (btn) => {
@@ -164,10 +148,7 @@ async function main() {
   // 初期表示
   resetList(sortPosts(enriched));
 
-  /* ===============================
-     🔍 検索（search.js を使用）
-     ★ ここが超重要
-================================ */
+  // ★ search.js を必ず使う
   const runner = createSearchRunner({
     enriched,
     sortPosts,
@@ -178,8 +159,7 @@ async function main() {
   const runSearch = debounce(async () => {
     const mySeq = ++searchSeq;
 
-    // ★ normalize しない！
-    // カンマ分割・LaTeX正規化は search.js 側でやる
+    // ★ここ重要：normalizeしない（カンマ分割とLaTeX正規化は search.js 側）
     await runner(ui.searchInput.value, mySeq);
   }, 200);
 

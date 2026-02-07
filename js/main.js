@@ -1,5 +1,5 @@
 // js/main.js
-console.log("MAIN 1810"); // これがConsoleに出れば新mainが動いてる
+console.log("MAIN 1810"); // これがConsoleに出れば新mainが動いてる.
 
 import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1810";
 import { loadRatings } from "./firebase.js?v=20260207_1810";

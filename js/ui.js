@@ -5,8 +5,7 @@ export function syncHeaderHeight() {
   document.documentElement.style.setProperty("--header-h", `${h}px`);
 }
 
-export function showNote(html) {
-  const timeline = document.getElementById("timeline");
+export function showNote(timeline, html) {
   if (!timeline) return;
   const div = document.createElement("div");
   div.className = "system-note";
@@ -14,59 +13,56 @@ export function showNote(html) {
   timeline.prepend(div);
 }
 
-/**
- * toolbar を作って timeline の「直前」に挿入する
- * 必ず timeline を引数で受け取る
- */
-export function buildToolbar(
-  timeline,
-  { onInput, onClear, onSortToggle } = {}
-) {
-  if (!timeline) {
-    throw new Error("buildToolbar: timeline が undefined");
-  }
+export function buildToolbar(timeline) {
+  if (!timeline) throw new Error("buildToolbar: timeline が未指定です");
 
   const toolbar = document.createElement("div");
   toolbar.className = "toolbar";
 
-  const inner = document.createElement("div");
-  inner.className = "toolbar-inner";
+  const toolbarInner = document.createElement("div");
+  toolbarInner.className = "toolbar-inner";
 
   const searchInput = document.createElement("input");
   searchInput.type = "search";
-  searchInput.placeholder = "検索（年度・大学名・本文）";
+  searchInput.placeholder = "検索（例: 2025 / 6 / 複素数 / Re / 4a+1 など）";
   searchInput.autocomplete = "off";
 
   const clearBtn = document.createElement("button");
   clearBtn.textContent = "クリア";
 
-  const sortBtn = document.createElement("button");
-  sortBtn.textContent = "並び順：年度順";
+  const sortToggle = document.createElement("button");
+  sortToggle.textContent = "並び順：年度順";
 
-  searchInput.addEventListener("input", () => {
-    onInput?.(searchInput.value);
-  });
+  toolbarInner.appendChild(searchInput);
+  toolbarInner.appendChild(clearBtn);
+  toolbarInner.appendChild(sortToggle);
+  toolbar.appendChild(toolbarInner);
 
-  clearBtn.onclick = () => {
-    searchInput.value = "";
-    onClear?.();
-  };
-
-  sortBtn.onclick = () => {
-    onSortToggle?.();
-  };
-
-  inner.appendChild(searchInput);
-  inner.appendChild(clearBtn);
-  inner.appendChild(sortBtn);
-  toolbar.appendChild(inner);
-
-  // ★ここがエラーの原因だった：timeline.before は timeline 必須
+  // timeline の直前に挿入
   timeline.before(toolbar);
 
-  // header 高さ同期
-  syncHeaderHeight();
-  window.addEventListener("resize", syncHeaderHeight);
+  // 返す（main.js側でイベントを貼る）
+  return { toolbar, searchInput, clearBtn, sortToggle };
+}
 
-  return { searchInput, sortBtn };
+/**
+ * 画面上に「JSエラーで停止しました」表示を出す（任意）
+ */
+export function attachGlobalErrorBanner(timeline) {
+  const banner = document.createElement("div");
+  banner.className = "system-note";
+  banner.style.borderColor = "#f2b8b5";
+  banner.style.background = "#fff4f4";
+  banner.style.display = "none";
+  banner.innerHTML =
+    "❌ JavaScript エラーで描画が止まりました。<br>Console を確認してください。";
+
+  timeline?.prepend(banner);
+
+  window.addEventListener("error", () => {
+    banner.style.display = "block";
+  });
+  window.addEventListener("unhandledrejection", () => {
+    banner.style.display = "block";
+  });
 }

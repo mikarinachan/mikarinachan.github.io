@@ -511,7 +511,7 @@ async function main() {
     for (const p of enriched) {
       if (!p.body) {
         try {
-          const raw = await fetchTextWithEncoding(p.tex, p.encoding || "utf-8");
+          const raw = await fetchTextWithEncoding(p.tex, p.encoding || guessEncoding(p.tex));
           p.body = normalizeLatexForMathJax(raw);
         } catch {}
       }

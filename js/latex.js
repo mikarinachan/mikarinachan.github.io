@@ -1,102 +1,135 @@
 // js/latex.js
-// - LaTeX整形
-// - 検索用正規化
-// - HTML escape
-// 互換のため escapeHTML / escapeHTML を両方 export します
 
+// 文字列正規化（検索用）
 export function normalizeQuery(q) {
   return (q || "").trim().toLowerCase().normalize("NFKC");
 }
 
-const _escape = (s) => {
-  return (s ?? "")
+// HTMLエスケープ（※これが二重定義されると redeclaration で死亡）
+export function escapeHTML(s) {
+  return String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-};
+}
 
-// ✅ どっちでimportされてもOKにする
-export const escapeHTML = _escape;
-export const escapeHTML = _escape;
-
+/**
+ * LaTeX → 表示用に正規化（危険/不要な命令を削除）
+ * - 問題文冒頭に出てしまう \setlength{\baselineskip}{...} もここで確実に除去
+ */
 export function normalizeLatexForMathJax(tex) {
-  return String(tex ?? "")
-    // ここで「\setlength{\baselineskip}{22pt}」を消す（←あなたの直したい箇所）
-    .replace(/\\setlength\{\\baselineskip\}\{[^}]*\}\s*/g, "")
-    .replace(/\\setlength\{\\baselineskip\}\{[^}]*\}/g, "")
+  let t = String(tex ?? "");
 
-    // MathJaxで死にやすい/警告になる命令をまとめて除去
+  // まず document 前後を落とす
+  t = t
+    .replace(/^[\s\S]*?\\begin\{document\}/, "")
+    .replace(/\\end\{document\}[\s\S]*$/, "");
+
+  // \setlength{\baselineskip}{22pt} など（baselineskip専用）
+  t = t.replace(/\\setlength\{\s*\\baselineskip\s*\}\{[^}]*\}/g, "");
+
+  // 一般のレイアウト命令（setlength/addtolength）
+  t = t
+    .replace(/\\setlength\{[^}]+\}\{[^}]+\}/g, "")
+    .replace(/\\addtolength\{[^}]+\}\{[^}]+\}/g, "");
+
+  // MathJaxで死にやすい/不要になりがちな命令
+  t = t
     .replace(/\\hspace\*?\{[^}]*\}/g, "")
     .replace(/\\vspace\*?\{[^}]*\}/g, "")
     .replace(/\\(smallskip|medskip|bigskip)\b/g, "")
     .replace(/\\(noindent|par|indent)\b/g, "\n")
     .replace(/\\(newpage|clearpage|pagebreak|linebreak)\b(\[[^\]]*\])?/g, "\n")
     .replace(/\\(qquad|quad)\b/g, " ")
-    .replace(/\\,/g, " ")
+    .replace(/\\,/g, " ");
 
-    // レイアウト命令
-    .replace(/\\setlength\{[^}]+\}\{[^}]+\}/g, "")
-    .replace(/\\addtolength\{[^}]+\}\{[^}]+\}/g, "")
-    .replace(
-      /\\(textwidth|textheight|oddsidemargin|evensidemargin|topmargin|headheight|headsep|footskip)\s*=?\s*[^\\\n]*/g,
-      ""
-    )
-
-    // 図・表・外部ファイル系
+  // 図・表・外部ファイル系
+  t = t
     .replace(/\\includegraphics(\[[^\]]*\])?\{[^}]*\}/g, "")
     .replace(/\\input\{[^}]*\}/g, "")
     .replace(/\\include\{[^}]*\}/g, "")
     .replace(/\\bibliography\{[^}]*\}/g, "")
-    .replace(/\\bibliographystyle\{[^}]*\}/g, "")
+    .replace(/\\bibliographystyle\{[^}]*\}/g, "");
 
-    // tikz/picture系
-    .replace(/\\begin\{(tikzpicture|picture|pspicture|circuitikz)\}[\s\S]*?\\end\{\1\}/g, "")
+  // tikz/picture系 まるごと除去
+  t = t.replace(
+    /\\begin\{(tikzpicture|picture|pspicture|circuitikz)\}[\s\S]*?\\end\{\1\}/g,
+    ""
+  );
 
-    // raisebox/phantom系
+  // phantom/raisebox
+  t = t
     .replace(/\\raisebox\{[^}]*\}\{[^}]*\}/g, "")
-    .replace(/\\(phantom|hphantom|vphantom)\{[^}]*\}/g, "")
+    .replace(/\\(phantom|hphantom|vphantom)\{[^}]*\}/g, "");
 
-    // color系
+  // color系（文字だけ残す）
+  t = t
     .replace(/\\textcolor\{[^}]*\}\{([^}]*)\}/g, "$1")
-    .replace(/\\color\{[^}]*\}/g, "")
+    .replace(/\\color\{[^}]*\}/g, "");
 
-    // label/ref/cite
+  // label/ref/cite
+  t = t
     .replace(/\\label\{[^}]*\}/g, "")
     .replace(/\\ref\{[^}]*\}/g, "")
-    .replace(/\\cite\{[^}]*\}/g, "")
+    .replace(/\\cite\{[^}]*\}/g, "");
 
-    // document前後
-    .replace(/^[\s\S]*?\\begin\{document\}/, "")
-    .replace(/\\end\{document\}[\s\S]*$/, "")
-
-    // 前置き命令
+  // 前置き命令
+  t = t
     .replace(/\\documentclass(\[[^\]]*\])?\{[^}]*\}/g, "")
     .replace(/\\usepackage(\[[^\]]*\])?\{[^}]*\}/g, "")
-    .replace(/\\pagestyle\{[^}]+\}/g, "")
+    .replace(/\\pagestyle\{[^}]+\}/g, "");
 
-    // 文字サイズ命令
-    .replace(/\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g, "")
+  // 文字サイズ命令
+  t = t.replace(
+    /\\(?:tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)\b/g,
+    ""
+  );
 
-    // 文章レイアウト環境は剥がす
+  // 環境（簡易整形）
+  t = t
     .replace(/\\begin\{(?:flushleft|center|flushright)\}/g, "")
     .replace(/\\end\{(?:flushleft|center|flushright)\}/g, "")
     .replace(/\\begin\{(?:description|itemize|enumerate)\}/g, "\n")
-    .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "\n")
+    .replace(/\\end\{(?:description|itemize|enumerate)\}/g, "\n");
 
-    // item の整形
+  // item 整形
+  t = t
     .replace(/\\item\s*\[\s*\(([^)]+)\)\s*\]\s*/g, "\n（$1） ")
     .replace(/\\item\s*\[\s*([^\]]+)\s*\]\s*/g, "\n$1： ")
-    .replace(/\\item\b\s*/g, "\n・ ")
+    .replace(/\\item\b\s*/g, "\n・ ");
 
-    // {4} みたいな行頭番号をQNUMタグへ
-    .replace(/^\s*\{(\d+)\}\s*$/m, "[[QNUM:$1]]")
-    .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, "[[QNUM:$1]]")
+  // {4} みたいな単独行 → QNUMタグへ
+  t = t
+    .replace(/^\s*\{(\d+)\}\s*$/gm, "[[QNUM:$1]]")
+    .replace(/\{\s*\\huge\s+(\d+)\s*\}/g, "[[QNUM:$1]]");
 
-    // 整形
+  // 整形
+  t = t
     .replace(/\u3000+/g, " ")
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  return t;
+}
+
+/**
+ * 正規化済み本文（plain）を「安全なHTML」にする
+ * - 全体をescape → QNUMだけHTMLとして復元
+ */
+export function latexBodyToSafeHTML(normalizedBody) {
+  let s = String(normalizedBody ?? "");
+
+  // QNUMだけ避難
+  s = s.replace(/\[\[QNUM:(\d+)\]\]/g, "%%QNUM:$1%%");
+
+  // 全体escape
+  s = escapeHTML(s);
+
+  // QNUM復元（許可HTML）
+  s = s.replace(/%%QNUM:(\d+)%%/g, '<span class="qnum">$1</span>');
+
+  return s;
 }

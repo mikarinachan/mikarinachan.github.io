@@ -1,12 +1,12 @@
 // js/main.js
-console.log("MAIN 1800"); // ★ここがConsoleに出たら新mainが動いてる証拠
+console.log("MAIN 1810"); // これがConsoleに出れば新mainが動いてる
 
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1800";
-import { loadRatings } from "./firebase.js?v=20260207_1800";
-import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1800";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1800";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1800";
-import { createSearchRunner } from "./search.js?v=20260207_1800";
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1810";
+import { loadRatings } from "./firebase.js?v=20260207_1810";
+import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1810";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1810";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1810";
+import { createSearchRunner } from "./search.js?v=20260207_1810";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -80,6 +80,7 @@ async function renderNextPage() {
     sentinel.remove();
     if (observer) observer.disconnect();
   }
+
   isLoading = false;
 }
 
@@ -97,12 +98,12 @@ function resetList(list) {
     },
     { rootMargin: "800px" }
   );
-  observer.observe(sentinel);
 
+  observer.observe(sentinel);
   renderNextPage();
 }
 
-function debounce(fn, ms) {
+function debounce(fn, ms = 200) {
   let t = null;
   return (...args) => {
     clearTimeout(t);
@@ -120,19 +121,22 @@ async function main() {
     return;
   }
 
+  if (!posts.length) {
+    showNote(timeline, "⚠️ データが空です（posts_index.json を確認）");
+    return;
+  }
+
   const ratingMap = await loadRatings();
 
   const enriched = posts
     .filter((p) => p && p.id && p.tex)
     .map((p) => {
       const scores = ratingMap[p.id] || [];
-      const avg = scores.length
-        ? scores.reduce((a, b) => a + b, 0) / scores.length
-        : 0;
+      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
       return { ...p, avg, count: scores.length };
     });
 
-  const ui = buildToolbar({
+  const { searchInput } = buildToolbar({
     timeline,
     onSortToggle: (btn) => {
       sortMode = sortMode === "year" ? "difficulty" : "year";
@@ -143,7 +147,7 @@ async function main() {
 
   resetList(sortPosts(enriched));
 
-  // ★ search.js を必ず使う
+  // ✅ search.js の検索エンジンを使う
   const runner = createSearchRunner({
     enriched,
     sortPosts,
@@ -153,13 +157,15 @@ async function main() {
 
   const runSearch = debounce(async () => {
     const mySeq = ++searchSeq;
-    // ★ normalizeしない（カンマ分割 / LaTeX正規化は search.js 側）
-    await runner(ui.searchInput.value, mySeq);
+    // ★ここ重要：normalizeしない（日本語/カンマ処理は search.js 側）
+    await runner(searchInput.value, mySeq);
   }, 200);
 
-  ui.searchInput.addEventListener("input", runSearch);
+  searchInput.addEventListener("input", runSearch);
 
   requestAnimationFrame(syncHeaderHeight);
+  setTimeout(syncHeaderHeight, 300);
+  setTimeout(syncHeaderHeight, 1200);
 }
 
 main();

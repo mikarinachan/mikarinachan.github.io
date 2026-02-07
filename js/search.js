@@ -1,5 +1,5 @@
 // js/search.js
-console.log("SEARCH 1820");
+console.log("SEARCH FAST");
 
 import { ensureBodyLoaded } from "./posts.js";
 
@@ -23,19 +23,15 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     return UNIVERSITY_NAME_MAP[key] || source;
   }
 
-  // ✅ 日本語を消さない正規化
+  // ✅ 日本語を消さない正規化（軽量）
   function norm(s) {
     if (s == null) return "";
     let t = String(s).normalize("NFKC").toLowerCase();
-
-    // LaTeXゆれ
     t = t
       .replace(/\^\{([^}]+)\}/g, "^$1")
       .replace(/_\{([^}]+)\}/g, "_$1")
-      .replace(/\{([a-z0-9]+)\}/gi, "$1");
-
-    // 空白削除
-    t = t.replace(/\s+/g, "");
+      .replace(/\{([a-z0-9]+)\}/gi, "$1")
+      .replace(/\s+/g, "");
     return t;
   }
 
@@ -63,21 +59,45 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     return norm(raw);
   }
 
+  // ✅ 「本文検索が必要か？」を判定（年・大学だけなら本文不要で爆速）
+  function needsBodySearch(terms) {
+    return terms.some((t) => {
+      if (/^\d{4}$/.test(t)) return false;            // 年
+      if (t.includes("大学")) return false;           // 大学名（日本語）
+      if (UNIVERSITY_NAME_MAP[t]) return false;       // tokyo/titech 等
+      // ↑以外は本文にある可能性が高い（n^2, integral, 文字列など）
+      return true;
+    });
+  }
+
   return async function runSearch(inputValue, mySeq) {
     const terms = parseTerms(inputValue);
     console.log("SEARCH terms:", terms);
 
+    // 空なら全件
     if (terms.length === 0) {
       resetList(sortPosts(enriched));
+      console.log("SEARCH reset(all)");
       return;
     }
 
-    const quickMatched = enriched.filter((p) => {
+    // ① メタ一致は即反映（ここが重要）
+    const metaMatched = enriched.filter((p) => {
       const meta = metaText(p);
       return terms.every((t) => meta.includes(t));
     });
 
-    const fullMatched = [];
+    resetList(sortPosts(metaMatched));
+    console.log("SEARCH reset(meta):", metaMatched.length);
+
+    // 入力が更新されたらここで終了（古い検索を反映しない）
+    if (mySeq !== getSearchSeq()) return;
+
+    // ② 本文検索が不要なら終わり（年/大学だけならこれで十分）
+    if (!needsBodySearch(terms)) return;
+
+    // ③ 本文込みで追加ヒットを探す（重いので後回し）
+    const bodyMatched = [];
     let i = 0;
 
     const worker = async () => {
@@ -89,14 +109,14 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
         try {
           await ensureBodyLoaded(p);
         } catch (e) {
-          console.warn("本文ロード失敗:", p?.tex, e);
+          // 読めないものはスキップ
         }
 
         if (mySeq !== getSearchSeq()) return;
 
         const combined = metaText(p) + norm(p.body || "");
         if (terms.every((t) => combined.includes(t))) {
-          fullMatched.push(p);
+          bodyMatched.push(p);
         }
       }
     };
@@ -104,15 +124,16 @@ export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSe
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
     if (mySeq !== getSearchSeq()) return;
 
+    // ④ メタ＋本文をマージして再反映
     const merged = [];
     const seen = new Set();
-    for (const p of [...quickMatched, ...fullMatched]) {
+    for (const p of [...metaMatched, ...bodyMatched]) {
       if (!p || seen.has(p.id)) continue;
       seen.add(p.id);
       merged.push(p);
     }
 
-    console.log("SEARCH result count:", merged.length);
     resetList(sortPosts(merged));
+    console.log("SEARCH reset(merged):", merged.length);
   };
 }

@@ -1,12 +1,12 @@
 // js/main.js
-console.log("MAIN 1810"); // これがConsoleに出れば新mainが動いてる.
+console.log("MAIN 1820");
 
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1810";
-import { loadRatings } from "./firebase.js?v=20260207_1810";
-import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1810";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1810";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1810";
-import { createSearchRunner } from "./search.js?v=20260207_1810";
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1820";
+import { loadRatings } from "./firebase.js?v=20260207_1820";
+import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1820";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1820";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1820";
+import { createSearchRunner } from "./search.js?v=20260207_1820";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -32,7 +32,7 @@ function sortPosts(list) {
     arr.sort((a, b) => {
       const d = String(b.date || "").localeCompare(String(a.date || ""));
       if (d !== 0) return d;
-      return (Number(a.no) || 0) - (Number(b.no) || 0);
+      return (Number(a.no) || 0) - (Number(a.no) || 0);
     });
   }
   return arr;
@@ -80,7 +80,6 @@ async function renderNextPage() {
     sentinel.remove();
     if (observer) observer.disconnect();
   }
-
   isLoading = false;
 }
 
@@ -98,8 +97,8 @@ function resetList(list) {
     },
     { rootMargin: "800px" }
   );
-
   observer.observe(sentinel);
+
   renderNextPage();
 }
 
@@ -118,11 +117,6 @@ async function main() {
   } catch (e) {
     console.error(e);
     showNote(timeline, "❌ posts_index.json の読み込みに失敗しました");
-    return;
-  }
-
-  if (!posts.length) {
-    showNote(timeline, "⚠️ データが空です（posts_index.json を確認）");
     return;
   }
 
@@ -145,6 +139,7 @@ async function main() {
     },
   });
 
+  // 初期表示
   resetList(sortPosts(enriched));
 
   // ✅ search.js の検索エンジンを使う
@@ -157,7 +152,6 @@ async function main() {
 
   const runSearch = debounce(async () => {
     const mySeq = ++searchSeq;
-    // ★ここ重要：normalizeしない（日本語/カンマ処理は search.js 側）
     await runner(searchInput.value, mySeq);
   }, 200);
 

@@ -6,13 +6,17 @@ export function syncHeaderHeight() {
 }
 
 export function showNote(timeline, html) {
+  if (!timeline) throw new Error("showNote: timeline がありません");
   const div = document.createElement("div");
   div.className = "system-note";
   div.innerHTML = html;
   timeline.prepend(div);
 }
 
-export function buildToolbar(timeline, { onInput, onClear, onSortToggle }) {
+/**
+ * timeline を必ず引数で受け取る版
+ */
+export function buildToolbar(timeline, { onInput, onClear, onSortToggle } = {}) {
   if (!timeline) throw new Error("buildToolbar: timeline が渡されていません");
 
   const toolbar = document.createElement("div");
@@ -37,17 +41,18 @@ export function buildToolbar(timeline, { onInput, onClear, onSortToggle }) {
   inner.appendChild(sortBtn);
   toolbar.appendChild(inner);
 
-  // timeline の直前に差し込む
+  // ここで落ちてた：timeline が undefined
   timeline.before(toolbar);
 
-  // イベント
   if (onInput) searchInput.addEventListener("input", onInput);
+
   clearBtn.addEventListener("click", () => {
     searchInput.value = "";
     searchInput.dispatchEvent(new Event("input"));
     if (onClear) onClear();
   });
+
   if (onSortToggle) sortBtn.addEventListener("click", onSortToggle);
 
-  return { toolbar, searchInput, clearBtn, sortBtn };
+  return { toolbar, toolbarInner: inner, searchInput, clearBtn, sortBtn };
 }

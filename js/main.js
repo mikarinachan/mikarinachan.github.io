@@ -1,12 +1,12 @@
 // js/main.js
-console.log("MAIN 1820");
+console.log("MAIN FINAL");
 
-import { loadPostIndex, ensureBodyLoaded } from "./posts.js?v=20260207_1820";
-import { loadRatings } from "./firebase.js?v=20260207_1820";
-import { latexBodyToSafeHTML } from "./latex.js?v=20260207_1820";
-import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js?v=20260207_1820";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260207_1820";
-import { createSearchRunner } from "./search.js?v=20260207_1820";
+import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
+import { loadRatings } from "./firebase.js";
+import { latexBodyToSafeHTML } from "./latex.js";
+import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
+import { createSearchRunner } from "./search.js";
 
 const timeline = document.getElementById("timeline");
 if (!timeline) throw new Error("#timeline が見つかりません");
@@ -18,12 +18,15 @@ let currentList = [];
 let rendered = 0;
 let isLoading = false;
 let observer = null;
-
 let searchSeq = 0;
 
-const sentinel = document.createElement("div");
+// ★ sentinel は必ず let（検索のたびに作り直す）
+let sentinel = document.createElement("div");
 sentinel.style.height = "1px";
 
+/* =========================
+   並び替え
+========================= */
 function sortPosts(list) {
   const arr = (list || []).slice();
   if (sortMode === "difficulty") {
@@ -32,12 +35,15 @@ function sortPosts(list) {
     arr.sort((a, b) => {
       const d = String(b.date || "").localeCompare(String(a.date || ""));
       if (d !== 0) return d;
-      return (Number(a.no) || 0) - (Number(a.no) || 0);
+      return (Number(a.no) || 0) - (Number(b.no) || 0);
     });
   }
   return arr;
 }
 
+/* =========================
+   1件描画
+========================= */
 async function renderOne(p) {
   if (!p) return;
 
@@ -68,40 +74,69 @@ async function renderOne(p) {
   }
 }
 
+/* =========================
+   ページ描画
+========================= */
 async function renderNextPage() {
   if (isLoading) return;
   isLoading = true;
 
   const next = currentList.slice(rendered, rendered + PAGE_SIZE);
-  for (const p of next) await renderOne(p);
+  for (const p of next) {
+    await renderOne(p);
+  }
   rendered += next.length;
 
   if (rendered >= currentList.length) {
-    sentinel.remove();
     if (observer) observer.disconnect();
+    observer = null;
   }
+
   isLoading = false;
 }
 
+/* =========================
+   ★ 検索反映の要：完全リセット
+========================= */
 function resetList(list) {
+  console.log("RESET LIST:", list.length);
+
   currentList = (list || []).filter(Boolean);
   rendered = 0;
+  isLoading = false;
 
+  // 既存 observer を必ず停止
+  if (observer) {
+    observer.disconnect();
+    observer = null;
+  }
+
+  // DOM を完全初期化
   timeline.innerHTML = "";
+
+  // sentinel を作り直す（重要）
+  sentinel = document.createElement("div");
+  sentinel.style.height = "1px";
   timeline.appendChild(sentinel);
 
-  if (observer) observer.disconnect();
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries.some((e) => e.isIntersecting)) renderNextPage();
+      if (entries.some((e) => e.isIntersecting)) {
+        renderNextPage();
+      }
     },
     { rootMargin: "800px" }
   );
+
   observer.observe(sentinel);
 
+  // 初回即描画
   renderNextPage();
 }
 
+/* =========================
+   util
+========================= */
 function debounce(fn, ms = 200) {
   let t = null;
   return (...args) => {
@@ -110,6 +145,9 @@ function debounce(fn, ms = 200) {
   };
 }
 
+/* =========================
+   main
+========================= */
 async function main() {
   let posts = [];
   try {
@@ -120,13 +158,20 @@ async function main() {
     return;
   }
 
+  if (!posts.length) {
+    showNote(timeline, "⚠️ データが空です");
+    return;
+  }
+
   const ratingMap = await loadRatings();
 
   const enriched = posts
     .filter((p) => p && p.id && p.tex)
     .map((p) => {
       const scores = ratingMap[p.id] || [];
-      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      const avg = scores.length
+        ? scores.reduce((a, b) => a + b, 0) / scores.length
+        : 0;
       return { ...p, avg, count: scores.length };
     });
 
@@ -134,7 +179,8 @@ async function main() {
     timeline,
     onSortToggle: (btn) => {
       sortMode = sortMode === "year" ? "difficulty" : "year";
-      btn.textContent = sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
+      btn.textContent =
+        sortMode === "year" ? "並び順：年度順" : "並び順：難易度順";
       resetList(sortPosts(currentList));
     },
   });
@@ -142,7 +188,7 @@ async function main() {
   // 初期表示
   resetList(sortPosts(enriched));
 
-  // ✅ search.js の検索エンジンを使う
+  // 検索エンジン
   const runner = createSearchRunner({
     enriched,
     sortPosts,

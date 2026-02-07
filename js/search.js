@@ -1,51 +1,34 @@
-export function createSearchRunner({ normalizeQuery, ensureBodyLoaded, sortPosts, resetList }) {
-  let searchSeq = 0;
+// js/search.js
+import { normalizeQuery } from "./latex.js";
+import { ensureBodyLoaded } from "./posts.js";
 
-  // id -> normalized body cache
-  const bodyCache = new Map();
-  // id -> normalized meta cache（最初に作る）
-  const metaCache = new Map();
-
+/**
+ * createSearchRunner({
+ *   enriched,          // 全投稿配列
+ *   sortPosts,         // 並び替え関数
+ *   resetList,         // 表示を入れ替える関数
+ *   getSearchSeq,      // 現在seq参照（中断用）
+ * })
+ */
+export function createSearchRunner({ enriched, sortPosts, resetList, getSearchSeq }) {
   const CONCURRENCY = 6;
 
-  async function ensureBodyNorm(p) {
-    if (bodyCache.has(p.id)) return bodyCache.get(p.id);
-
-    await ensureBodyLoaded(p); // ここで p.body が埋まる前提
-    const norm = normalizeQuery(p.body || "");
-    bodyCache.set(p.id, norm);
-    return norm;
-  }
-
-  return async function runSearch(enriched, inputValue) {
-    const mySeq = ++searchSeq;
+  return async function runSearch(inputValue, mySeq) {
     const q = normalizeQuery(inputValue);
 
+    // 空なら全件
     if (!q) {
       resetList(sortPosts(enriched));
       return;
     }
 
-    // meta cache 初回構築
-    if (metaCache.size === 0) {
-      for (const p of enriched) {
-        metaCache.set(p.id, normalizeQuery(`${p.date}_${p.no} ${p.source}`));
-      }
-    }
+    // メタ一致（即）
+    const metaMatched = enriched.filter((p) => {
+      const meta = normalizeQuery(`${p.date}_${p.no} ${p.source}`);
+      return meta.includes(q);
+    });
 
-    // まずメタ検索（速い）
-    const metaMatched = [];
-    for (const p of enriched) {
-      if (metaCache.get(p.id)?.includes(q)) metaMatched.push(p);
-    }
-
-    // クエリが短いときは本文まで行かない（体感が爆速になる）
-    if (q.length <= 1) {
-      resetList(sortPosts(metaMatched));
-      return;
-    }
-
-    // 本文検索（並列・中断可能）
+    // 本文一致（未ロードでも必ずロードして判定）
     const bodyMatched = [];
     let i = 0;
 
@@ -53,22 +36,28 @@ export function createSearchRunner({ normalizeQuery, ensureBodyLoaded, sortPosts
       while (i < enriched.length) {
         const p = enriched[i++];
 
-        if (mySeq !== searchSeq) return; // 入力更新で中断
+        // 入力が更新されたら中断（古い検索結果を反映しない）
+        if (mySeq !== getSearchSeq()) return;
 
         try {
-          const normBody = await ensureBodyNorm(p);
-          if (normBody.includes(q)) bodyMatched.push(p);
-        } catch {
-          // 本文取得失敗はスキップ
+          await ensureBodyLoaded(p); // ★これが重要：未表示でも本文を確実にロード
+        } catch (e) {
+          // 失敗しても止めない（そのpostは検索対象外になる）
+          console.warn("本文ロード失敗:", p?.tex, e);
         }
+
+        if (mySeq !== getSearchSeq()) return;
+
+        const body = normalizeQuery(p.body || "");
+        if (body.includes(q)) bodyMatched.push(p);
       }
     };
 
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-    if (mySeq !== searchSeq) return;
+    if (mySeq !== getSearchSeq()) return;
 
-    // merge
+    // マージ（重複除去）
     const merged = [];
     const seen = new Set();
     for (const p of [...metaMatched, ...bodyMatched]) {

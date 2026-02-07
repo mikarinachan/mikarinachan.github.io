@@ -77,15 +77,37 @@ function showNote(html) {
 async function fetchTextWithEncoding(url, encoding = "utf-8") {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
-  const buf = await res.arrayBuffer();
 
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const enc = String(encoding || "utf-8").toLowerCase();
+
+  // 1) UTF-8 系は素直に TextDecoder
+  if (enc === "utf-8" || enc === "utf8") {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+
+  // 2) Shift_JIS 系は encoding-japanese で変換（Safariでも安定）
+  if (enc === "shift_jis" || enc === "shift-jis" || enc === "sjis") {
+    if (!window.Encoding) {
+      throw new Error("encoding-japanese が読み込まれていません（index.htmlを確認）");
+    }
+    // SJIS -> UNICODE(string)
+    return window.Encoding.convert(bytes, {
+      to: "UNICODE",
+      from: "SJIS",
+      type: "string"
+    });
+  }
+
+  // 3) その他は最後に TextDecoder を試す（ダメならUTF-8）
   try {
-    return new TextDecoder(encoding).decode(buf);
-  } catch (e) {
-    console.warn(`TextDecoder(${encoding}) 失敗 → utf-8で再試行`, e);
-    return new TextDecoder("utf-8").decode(buf);
+    return new TextDecoder(enc).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes);
   }
 }
+
 
 /* ---------- util: pathから文字コードを推測 ---------- */
 function guessEncoding(path) {
@@ -103,7 +125,7 @@ function guessEncoding(path) {
     "posts/08_itech/"
   ];
 
-  if (sjisPrefixes.some((prefix) => p.includes(prefix))) return "shift_jis";
+  if (sjisPrefixes.some((prefix) => p.startsWith(prefix))) return "shift_jis";
   return "utf-8";
 }
 

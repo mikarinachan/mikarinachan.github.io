@@ -233,3 +233,10 @@ main{
   line-height:1.2;
 }
 
+.site-footer{
+  margin:2rem 0;
+  text-align:center;
+  font-size:.9rem;
+}
+
+

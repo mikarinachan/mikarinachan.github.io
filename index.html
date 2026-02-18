@@ -32,8 +32,25 @@
   </header>
 
   <main>
-    <div id="timeline"></div>
-  </main>
+
+  <!-- ✅ 利用方法ボタン -->
+  <div class="usage-button-wrap">
+    <button id="openUsageBtn" class="usage-btn">
+      📖 このサイトの使い方を見る
+    </button>
+  </div>
+
+  <!-- 利用方法画像表示エリア -->
+  <div id="usageModal" class="usage-modal hidden">
+    <div class="usage-modal-content">
+      <button id="closeUsageBtn" class="close-btn">×</button>
+      <img src="./images/usage.png" alt="サイト利用方法" class="usage-image">
+    </div>
+  </div>
+
+  <div id="timeline"></div>
+</main>
+
 
   <!-- ★ 超重要：search.js 対応 main.js を読む（キャッシュ破壊付き） -->
   <script type="module" src="./js/main.js?v=20260207_1835"></script>

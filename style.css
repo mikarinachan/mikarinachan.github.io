@@ -304,3 +304,15 @@ main{
   cursor:pointer;
 }
 
+.site-intro{
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: #fafafa;
+  border-radius: 14px;
+  line-height: 1.8;
+}
+
+.site-intro h2{
+  margin-bottom: 1rem;
+}

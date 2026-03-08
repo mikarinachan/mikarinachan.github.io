@@ -8,7 +8,7 @@ import {
   logout,
   watchAuthState,
   getCurrentUser
-} from "./firebase.js?v=20260308_1600";
+} from "./firebase.js?v=20260308_1705";
 import { latexBodyToSafeHTML } from "./latex.js";
 import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
 import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";

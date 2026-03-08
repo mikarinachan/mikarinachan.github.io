@@ -2,7 +2,13 @@
 console.log("MAIN FINAL");
 
 import { loadPostIndex, ensureBodyLoaded } from "./posts.js";
-import { loadRatings } from "./firebase.js";
+import {
+  loadRatings,
+  loginWithGoogle,
+  logout,
+  watchAuthState,
+  getCurrentUser
+} from "./firebase.js";
 import { latexBodyToSafeHTML } from "./latex.js";
 import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
 import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";

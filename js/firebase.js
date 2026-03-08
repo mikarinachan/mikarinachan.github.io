@@ -15,7 +15,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCfyTtuLXAmibDu2ebKSTUI-_ZKFrv8Syo",
+  apiKey: "AIzaSyCfyTtuLXAmjDbu2ebKSTUI-_ZKFrv8Syo",
   authDomain: "math-memo-870c0.firebaseapp.com",
   projectId: "math-memo-870c0",
   storageBucket: "math-memo-870c0.firebasestorage.app",

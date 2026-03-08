@@ -86,23 +86,36 @@ export async function wireRatingButtons({ card, p }) {
     btn.onclick = async () => {
       if (localStorage.getItem(ratedKey)) return;
 
-      const score = Number(btn.dataset.score);
-      await submitRating(p.id, score);
+      const user = getCurrentUser();
+      if (!user) {
+        alert("評価するには Google ログインが必要です。");
+        return;
+      }
 
-      const newAvg = (p.avg * p.count + score) / (p.count + 1);
-      p.count += 1;
-      p.avg = newAvg;
+      try {
+        const score = Number(btn.dataset.score);
+        await submitRating(p.id, score);
 
-      avgDiv.innerHTML =
-        '<span>平均難易度：</span>' +
-        '<span class="avg-badge"><b>' +
-        newAvg.toFixed(2) +
-        '</b>（' + p.count + '人）</span>';
+        const newAvg = (p.avg * p.count + score) / (p.count + 1);
+        p.count += 1;
+        p.avg = newAvg;
 
-      applyAvgClass(avgDiv, newAvg);
-      localStorage.setItem(ratedKey, score);
+        avgDiv.innerHTML =
+          '<span>平均難易度：</span>' +
+          '<span class="avg-badge"><b>' +
+          newAvg.toFixed(2) +
+          '</b>（' + p.count + '人）</span>';
 
-      card.querySelectorAll("button").forEach(b => b.disabled = true);
+        applyAvgClass(avgDiv, newAvg);
+        localStorage.setItem(ratedKey, score);
+
+        card.querySelectorAll("button[data-score]").forEach(b => {
+          b.disabled = true;
+        });
+      } catch (e) {
+        console.error(e);
+        alert("評価の送信に失敗しました。時間をおいて再度お試しください。");
+      }
     };
   });
 }

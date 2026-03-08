@@ -1,4 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+console.log("FIREBASE FILE LOADED 20260308-A");
 import {
   getFirestore,
   collection,

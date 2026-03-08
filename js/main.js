@@ -15,6 +15,63 @@ import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
 import { createSearchRunner } from "./search.js";
 
 const timeline = document.getElementById("timeline");
+
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const userInfo = document.getElementById("userInfo");
+
+function updateAuthUI(user) {
+  if (!loginBtn || !logoutBtn || !userInfo) return;
+
+  if (user) {
+    loginBtn.classList.add("hidden");
+    logoutBtn.classList.remove("hidden");
+    userInfo.classList.remove("hidden");
+    userInfo.textContent = `${user.displayName || "ログイン中"} さん`;
+  } else {
+    loginBtn.classList.remove("hidden");
+    logoutBtn.classList.add("hidden");
+    userInfo.classList.add("hidden");
+    userInfo.textContent = "";
+  }
+}
+
+if (loginBtn) {
+  loginBtn.addEventListener("click", async () => {
+    try {
+      await loginWithGoogle();
+    } catch (e) {
+      console.error(e);
+      alert("ログインに失敗しました");
+    }
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await logout();
+    } catch (e) {
+      console.error(e);
+      alert("ログアウトに失敗しました");
+    }
+  });
+}
+
+watchAuthState((user) => {
+  updateAuthUI(user);
+});
+
+
+
+
+
+
+
+
+
+
+
 if (!timeline) throw new Error("#timeline が見つかりません");
 
 let sortMode = "year";

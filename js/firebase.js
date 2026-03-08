@@ -33,11 +33,12 @@ const provider = new GoogleAuthProvider();
 provider.setCustomParameters({
   prompt: "select_account"
 });
-
 export async function loginWithGoogle() {
+  console.log("LOGIN START", firebaseConfig.apiKey);
   const result = await signInWithPopup(auth, provider);
   return result.user;
 }
+
 
 export async function logout() {
   await signOut(auth);

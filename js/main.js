@@ -42,7 +42,7 @@ if (loginBtn) {
       await loginWithGoogle();
     } catch (e) {
       console.error(e);
-      alert("ログインに失敗しました");
+      alert(`${e.code || ""}\n${e.message || e}`);
     }
   });
 }

@@ -11,7 +11,7 @@ import {
 } from "./firebase.js?v=20260308_1705";
 import { latexBodyToSafeHTML } from "./latex.js";
 import { buildToolbar, showNote, syncHeaderHeight } from "./ui.js";
-import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js";
+import { buildCard, applyAvgClass, wireRatingButtons } from "./render.js?v=20260308_1705";
 import { createSearchRunner } from "./search.js";
 
 const timeline = document.getElementById("timeline");

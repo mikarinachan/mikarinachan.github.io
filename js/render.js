@@ -1,6 +1,6 @@
 // js/render.js
 import { escapeHTML } from "./latex.js";
-import { submitRating, getCurrentUser } from "./firebase.js";
+import { submitRating, getCurrentUser } from "./firebase.js?v=20260308_1600";
 
 /* 表示用 大学名マップ */
 const UNIVERSITY_NAME_MAP = {

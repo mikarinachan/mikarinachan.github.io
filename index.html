@@ -42,7 +42,31 @@
 </header>
 
   <main>
+    
+<script type="module" src="./main.js?v=20260309_1915"></script>
 
+<script>
+  window.addEventListener("error", (e) => {
+    console.error("GLOBAL ERROR:", e.error || e.message);
+    const tl = document.getElementById("timeline");
+    if (tl) {
+      const div = document.createElement("div");
+      div.style.padding = "12px";
+      div.style.margin = "12px";
+      div.style.border = "1px solid #f99";
+      div.style.background = "#fff5f5";
+      div.innerHTML =
+        "❌ JavaScript エラーで描画が止まりました。<br>Console を確認してください。";
+      tl.prepend(div);
+    }
+  });
+</script>
+
+<footer class="site-footer">
+  <a href="./about.html">運営者情報</a> |
+  <a href="./privacy.html">プライバシーポリシー</a> |
+  <a href="./contact.html">お問い合わせ</a>
+</footer>
 
 
 

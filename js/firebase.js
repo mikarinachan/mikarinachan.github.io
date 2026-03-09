@@ -5,7 +5,6 @@ import {
   addDoc,
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
 import {
   getAuth,
   GoogleAuthProvider,
@@ -13,6 +12,8 @@ import {
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+console.log("FIREBASE FILE LOADED 20260309-B");
 
 const firebaseConfig = {
   apiKey: "AIzaSyCfyTtuLXAmjDbu2ebKSTUI-_ZKFrv8Syo",
@@ -29,11 +30,10 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
-provider.setCustomParameters({
-  prompt: "select_account"
-});
+provider.setCustomParameters({ prompt: "select_account" });
 
 export async function loginWithGoogle() {
+  console.log("LOGIN START", location.href);
   const result = await signInWithPopup(auth, provider);
   return result.user;
 }
@@ -65,10 +65,7 @@ export async function loadRatings() {
 
 export async function submitRating(postId, score) {
   const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("LOGIN_REQUIRED");
-  }
+  if (!user) throw new Error("LOGIN_REQUIRED");
 
   return addDoc(collection(db, "ratings"), {
     postId,
